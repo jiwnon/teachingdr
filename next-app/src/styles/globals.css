@@ -1,0 +1,40 @@
+/* =============================================================================
+   글로벌 스타일 (ui-ux-pro-max, web-design-guidelines 반영)
+   =============================================================================
+   - 터치: 최소 44x44px (touch-target-size)
+   - 접근성: 포커스 링, 색 대비
+   - PWA standalone: safe-area 고려 가능
+   ============================================================================= */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+}
+
+/* 터치 타겟 최소 크기 (ui-ux-pro-max: touch-target-size) */
+button,
+a[role="button"],
+input[type="submit"],
+input[type="button"] {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* 포커스 링 (접근성) */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}

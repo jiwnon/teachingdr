@@ -1,0 +1,37 @@
+{
+  "name": "grade-helper",
+  "version": "0.1.0",
+  "private": true,
+  "description": "성적도우미 - 엑셀 기반 문장 생성 및 성적 관리 PWA (skills: next-best-practices, supabase-postgres-best-practices, wrangler)",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "db:generate": "supabase gen types typescript --project-id $SUPABASE_PROJECT_ID > src/types/database.gen.ts",
+    "db:migrate": "supabase db push",
+    "cf:pages:deploy": "npx wrangler pages deploy ./out --project-name=grade-helper",
+    "cf:check": "npx wrangler check",
+    "cf:types": "npx wrangler types"
+  },
+  "dependencies": {
+    "next": "14.2.18",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "@supabase/supabase-js": "^2.45.4",
+    "@supabase/ssr": "^0.5.2"
+  },
+  "devDependencies": {
+    "@ducanh2912/next-pwa": "^5.6.6",
+    "@types/node": "^22.9.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "typescript": "^5.6.3",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "14.2.18",
+    "wrangler": "^3.93.0"
+  },
+  "engines": {
+    "node": ">=18.17.0"
+  }
+}

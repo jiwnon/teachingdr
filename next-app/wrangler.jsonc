@@ -1,0 +1,6 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "grade-helper",
+  "compatibility_date": "2025-02-01",
+  "comment": "Pages 정적 배포 시: wrangler pages deploy ./out --project-name=grade-helper. env는 Dashboard에서 설정."
+}

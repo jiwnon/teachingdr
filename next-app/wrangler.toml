@@ -1,0 +1,27 @@
+# =============================================================================
+# Cloudflare Pages - 성적도우미 (wrangler / cloudflare 스킬 반영)
+# =============================================================================
+# wrangler 스킬: compatibility_date 최근 30일 이내 권장, 배포 전 wrangler check
+# cloudflare 스킬: Pages = 정적/프레임워크 빌드 배포
+#
+# 사용법:
+#   1) wrangler login
+#   2) next.config.js 에 output: 'export' 설정 후 npm run build → out/ 생성
+#   3) 배포: npx wrangler pages deploy ./out --project-name=grade-helper
+#   4) 환경변수: Dashboard > Pages > 프로젝트 > Settings > Environment variables
+#      (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY)
+#
+# 참고: wrangler 스킬에서는 wrangler.jsonc 사용 권장(스키마 검증).
+#       Pages 전용 정적 배포는 이 toml만으로도 가능.
+# =============================================================================
+
+name = "grade-helper"
+compatibility_date = "2025-02-01"
+
+# Pages 정적 배포 시 빌드 출력 디렉터리 (Git 연동 배포 시 Dashboard 빌드 설정에서 지정)
+# pages_build_output_dir = "out"
+
+# 비밀/환경변수는 Dashboard 또는 wrangler pages secret put 사용
+# [vars]
+# NEXT_PUBLIC_SUPABASE_URL = "https://xxx.supabase.co"
+# NEXT_PUBLIC_SUPABASE_ANON_KEY = "eyJ..."
