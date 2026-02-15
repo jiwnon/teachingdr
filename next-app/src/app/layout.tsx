@@ -9,10 +9,10 @@ import type { Metadata, Viewport } from 'next';
 import '../styles/globals.css';
 
 export const metadata: Metadata = {
-  title: { default: '성적도우미', template: '%s | 성적도우미' },
-  description: '엑셀 기반 문장 생성 및 성적 관리',
+  title: { default: 'ReportMate', template: '%s | ReportMate' },
+  description: '생활기록부 평어를 빠르게 작성하는 웹 앱. 학년/학기/과목 선택 후 등급만 입력하면 평어 자동 생성.',
   manifest: '/manifest.json',
-  appleWebApp: { capable: true, title: '성적도우미' },
+  appleWebApp: { capable: true, title: 'ReportMate' },
 };
 
 export const viewport: Viewport = {

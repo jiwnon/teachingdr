@@ -1,7 +1,7 @@
 {
-  "name": "성적도우미",
-  "short_name": "성적도우미",
-  "description": "엑셀 기반 문장 생성 및 성적 관리 - 웹/모바일 앱",
+  "name": "ReportMate - 초등 평어 도우미",
+  "short_name": "ReportMate",
+  "description": "생활기록부 평어 자동 생성 - 학년/학기/과목 선택 후 등급만 입력하면 평어 완성",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
