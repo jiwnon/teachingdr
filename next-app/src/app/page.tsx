@@ -1,6 +1,5 @@
 /**
- * 메인: 과목 선택 후 생성 페이지로 이동
- * 초등 평어 도우미 MVP: 1학년 2학기, 국어-가/국어-나/수학/통합
+ * 메인: 1학년 1학기 국어/수학 평어 도우미 (엑셀 대체)
  */
 import Link from 'next/link';
 
@@ -8,8 +7,14 @@ export default function HomePage() {
   return (
     <main>
       <h1>초등 평어 도우미</h1>
-      <p>학년/학기/과목을 선택하면 평가 기준 템플릿이 자동으로 제공됩니다.</p>
-      <Link href="/create">평어 작성 시작</Link>
+      <p>1학년 1학기 국어·수학 평어를 빠르게 작성합니다. (엑셀 대체)</p>
+      <nav>
+        <Link href="/students">1. 학생 명단</Link>
+        <span> → </span>
+        <Link href="/ratings">2. 등급 입력</Link>
+        <span> → </span>
+        <Link href="/review">3. 결과 확인</Link>
+      </nav>
     </main>
   );
 }

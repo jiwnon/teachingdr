@@ -1,57 +1,64 @@
 # ReportMate
 
-**프로젝트 이름**: ReportMate (리포트 메이트)
+**1학년 1학기 국어·수학** 생활기록부 평어를 빠르게 작성하는 **엑셀 대체** 웹 앱.  
+과목 선택 → 학생 명단 입력 → 단원별 등급(상/중/하) 입력 → 평어 자동 생성 → 결과 확인·엑셀 다운로드.
 
-초등학교 선생님들이 생활기록부 평어를 빠르게 작성할 수 있는 웹 앱.  
-학년/학기/과목 선택 → 평가 기준 템플릿 자동 제공 → 학생명·등급(상/중/하) 입력 → 평어 자동 생성.
+- **MVP**: 프로젝트/멀티테넌트/인증 없음. 단일 세션 도구.
+- **SaaS가 아님**: 로컬에서 한 반·한 과목씩 사용.
 
 ## 기술 스택
 
 - **Frontend**: Next.js 14 (App Router) + TypeScript
-- **Backend**: Supabase (PostgreSQL)
-- **UI**: shadcn/ui + Tailwind (설치 예정)
+- **Backend**: Supabase (PostgreSQL, templates만 사용)
+- **UI**: shadcn/ui + Tailwind (설정 예정)
 - **상태**: Zustand
 - **엑셀**: xlsx (다운로드)
 - **배포**: Cloudflare Pages
 
-## MVP 범위
+## 라우팅
 
-- 1학년 2학기 한정
-- 과목: 국어-가, 국어-나, 수학, 통합(놀이/안전)
-- 각 과목의 단원별 평가 기준을 DB(templates)에 저장
+```
+/
+├── students   # 학생 명단 입력
+├── ratings    # 단원별 등급 입력
+└── review     # 결과 확인·다운로드
+```
 
 ## 사용 흐름
 
-1. 과목 선택 → 2. 학생 명단 입력(수동/엑셀 붙여넣기) → 3. 단원별 등급 테이블(행=학생, 열=단원, 상/중/하) → 4. 평어 생성 → 5. 결과 확인·복사·엑셀 다운로드
+1. **/** → 시작
+2. **/students** → 과목 선택(국어/수학), 학생 명단 입력(한 줄에 한 명 또는 엑셀 붙여넣기)
+3. **/ratings** → 단원별 등급 테이블(행=학생, 열=단원, 상/중/하)
+4. **/review** → 평어 생성 결과 확인, 복사, 엑셀 다운로드
 
 ## 프로젝트 구조
 
 ```
 src/
 ├── app/
-│   ├── page.tsx              # 메인: 과목 선택
-│   ├── create/page.tsx        # 프로젝트 생성
-│   └── project/[id]/page.tsx  # 작업 페이지
+│   ├── page.tsx           # 메인
+│   ├── students/page.tsx   # 학생 명단
+│   ├── ratings/page.tsx    # 등급 입력
+│   └── review/page.tsx     # 결과 확인
 ├── components/
-│   ├── SubjectSelector.tsx    # 과목 선택
-│   ├── StudentInput.tsx       # 학생 명단 입력
-│   ├── GradeTable.tsx         # 등급 입력 테이블
-│   └── ResultViewer.tsx       # 결과 보기/다운로드
+│   ├── SubjectSelector.tsx
+│   ├── StudentInput.tsx
+│   ├── GradeTable.tsx
+│   └── ResultViewer.tsx
+├── store/
+│   └── app-store.ts        # Zustand (subject, studentNames, grades)
 ├── lib/
-│   ├── supabase/              # client, server, middleware
-│   ├── types.ts               # Template, Project, Student, Grade, Result
-│   └── generator.ts           # 평어 생성 로직
-└── store/
-    └── project-store.ts       # Zustand
+│   ├── supabase/           # client, server (templates 조회용)
+│   ├── types.ts            # Template, Level, SubjectCode
+│   └── generator.ts        # 평어 생성 로직
+└── styles/
 ```
 
-## DB 스키마 (Supabase)
+## DB (Supabase)
 
-- **templates**: id, grade, semester, subject, unit, level(상/중/하), sentence
-- **projects**: id, teacher_name, grade, semester, subject, created_at
-- **students**: id, project_id, name, order
-- **grades**: id, student_id, unit, level (unique student_id+unit)
-- **results**: id, student_id, generated_text, created_at
+- **templates**만 사용: id, grade, semester, subject, unit, level(상/중/하), sentence  
+  - MVP: 1학년(grade=1), 1학기(semester=1), subject = '국어' | '수학'
+- 학생·등급·결과는 DB에 저장하지 않고 앱 상태(메모리)로만 처리.
 
 마이그레이션: `supabase/migrations/20240216000000_elementary_comment_schema.sql`
 
@@ -60,7 +67,3 @@ src/
 1. `npm install`
 2. `.env.local`에 `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` 설정
 3. `npm run dev`
-
-## 참고 Skills
-
-- next-best-practices, supabase-postgres-best-practices, vercel-react-best-practices, ui-ux-pro-max

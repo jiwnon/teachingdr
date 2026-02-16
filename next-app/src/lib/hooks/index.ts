@@ -1,6 +1,5 @@
 /**
- * 커스텀 훅 - 뼈대
- * 예: useAuth, useProject, useStudents 등
+ * 커스텀 훅 (MVP: useAppStore 사용)
  */
 
 export function noop(): void {}
