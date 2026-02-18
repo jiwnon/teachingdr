@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/client';
+import { createClient, hasSupabaseEnv } from '@/lib/supabase/client';
 import { useAppStore } from '@/store/app-store';
 import type { Level } from '@/lib/types';
 import type { Area } from '@/lib/types';
@@ -14,25 +14,42 @@ export default function RatingsPage() {
   const [areas, setAreas] = useState<Area[]>([]);
   const [ratings, setRatings] = useState<Record<string, Level>>({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const sub = subject ?? '국어';
 
   useEffect(() => {
+    if (!hasSupabaseEnv()) {
+      setError('NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY를 .env.local에 설정하세요.');
+      setLoading(false);
+      return;
+    }
+    setError(null);
     const supabase = createClient();
     Promise.all([
       supabase.from('students').select('id, number, name').order('number'),
       supabase.from('areas').select('id, subject, name, order_index').eq('subject', sub).order('order_index'),
       supabase.from('ratings').select('student_id, area_id, level'),
-    ]).then(([s, a, r]) => {
-      setStudents((s.data ?? []) as Student[]);
-      setAreas((a.data ?? []) as Area[]);
-      const map: Record<string, Level> = {};
-      for (const x of r.data ?? []) {
-        map[`${x.student_id}-${x.area_id}`] = x.level as Level;
-      }
-      setRatings(map);
-      setLoading(false);
-    });
+    ])
+      .then(([s, a, r]) => {
+        if (s.error) setError(s.error.message);
+        else if (a.error) setError(a.error.message);
+        else if (r.error) setError(r.error.message);
+        else {
+          setStudents((s.data ?? []) as Student[]);
+          setAreas((a.data ?? []) as Area[]);
+          const map: Record<string, Level> = {};
+          for (const x of r.data ?? []) {
+            map[`${x.student_id}-${x.area_id}`] = x.level as Level;
+          }
+          setRatings(map);
+        }
+        setLoading(false);
+      })
+      .catch((e) => {
+        setError(e?.message ?? '로드 실패');
+        setLoading(false);
+      });
   }, [sub]);
 
   const setRating = async (studentId: string, areaId: string, level: Level | '') => {
@@ -53,66 +70,107 @@ export default function RatingsPage() {
     }
   };
 
-  if (loading) return <p>로딩 중...</p>;
+  if (loading) return <div className="loading">로딩 중...</div>;
+  if (error) return <div className="alert alert-error">{error}</div>;
 
   return (
-    <main style={{ padding: 16 }}>
-      <h1>등급 입력</h1>
-      <p>
-        과목:{' '}
+    <div className="card">
+      <h1>2단계: 과목·등급 입력</h1>
+      <p className="sub">
+        과목을 선택한 뒤, 학생별·단원별로 상/중/하를 선택하세요. (변경 시 자동 저장)
+      </p>
+
+      <section className="subject-section">
+        <label htmlFor="subject-select">과목</label>
         <select
+          id="subject-select"
+          className="input input-subject"
           value={sub}
           onChange={(e) => setSubject(e.target.value as '국어' | '수학')}
         >
           <option value="국어">국어</option>
           <option value="수학">수학</option>
         </select>
-      </p>
-      {students.length === 0 ? (
-        <p>
-          학생이 없습니다. <Link href="/students">학생 명단</Link>에서 먼저 입력하세요.
-        </p>
-      ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>번호</th>
-              <th>이름</th>
-              {areas.map((a) => (
-                <th key={a.id}>{a.name}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {students.map((st) => (
-              <tr key={st.id}>
-                <td>{st.number}</td>
-                <td>{st.name}</td>
-                {areas.map((a) => (
-                  <td key={a.id}>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={1}
-                      size={1}
-                      value={ratings[`${st.id}-${a.id}`] ?? ''}
-                      onChange={(e) => {
-                        const v = e.target.value.replace(/\D/g, '');
-                        if (v === '1' || v === '2' || v === '3') {
-                          setRating(st.id, a.id, v as Level);
-                        } else if (v === '') {
-                          setRating(st.id, a.id, '');
-                        }
-                      }}
-                    />
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-      <Link href="/review">결과 확인</Link>
-    </main>
+      </section>
+
+      <section className="ratings-section">
+        <h2 className="section-title">등급 입력</h2>
+        {students.length === 0 ? (
+          <div className="alert alert-error">
+            학생이 없습니다. <Link href="/students">학생 명단</Link>에서 먼저 입력하세요.
+          </div>
+        ) : (
+          <>
+            <div className="table-wrap ratings-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>번호</th>
+                    <th>이름</th>
+                    {areas.length > 0
+                      ? areas.map((a) => <th key={a.id}>{a.name}</th>)
+                      : <th>등급</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {students.map((st) => (
+                    <tr key={st.id}>
+                      <td>{st.number}</td>
+                      <td>{st.name}</td>
+                      {areas.length > 0 ? (
+                        areas.map((a) => (
+                          <td key={a.id}>
+                            <select
+                              className="input input-level"
+                              value={ratings[`${st.id}-${a.id}`] ?? ''}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                setRating(st.id, a.id, v === '' ? '' : (v as Level));
+                              }}
+                            >
+                              <option value="">선택</option>
+                              <option value="1">상</option>
+                              <option value="2">중</option>
+                              <option value="3">하</option>
+                            </select>
+                          </td>
+                        ))
+                      ) : (
+                        <td>
+                          <select
+                            className="input input-level"
+                            value={ratings[`${st.id}-default`] ?? ''}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              setRatings((prev) => {
+                                const next = { ...prev };
+                                if (v === '') delete next[`${st.id}-default`];
+                                else next[`${st.id}-default`] = v as Level;
+                                return next;
+                              });
+                            }}
+                          >
+                            <option value="">선택</option>
+                            <option value="1">상</option>
+                            <option value="2">중</option>
+                            <option value="3">하</option>
+                          </select>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {areas.length === 0 && (
+              <p className="sub" style={{ marginTop: 8 }}>
+                Supabase의 areas 테이블에 단원을 넣으면 단원별로 등급을 저장할 수 있습니다.
+              </p>
+            )}
+            <Link href="/review" className="btn btn-primary">3단계: 평어 생성 →</Link>
+          </>
+        )}
+      </section>
+    </div>
   );
 }

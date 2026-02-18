@@ -23,6 +23,8 @@ export const viewport: Viewport = {
   userScalable: true,
 };
 
+import AppNav from '@/components/AppNav';
+
 export default function RootLayout({
   children,
 }: {
@@ -30,7 +32,17 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko">
-      <body>{children}</body>
+      <body>
+        <div className="app-shell">
+          <header className="app-header">
+            <div className="app-header-inner">
+              <a href="/" className="app-logo">ReportMate</a>
+              <AppNav />
+            </div>
+          </header>
+          <main className="app-main">{children}</main>
+        </div>
+      </body>
     </html>
   );
 }
