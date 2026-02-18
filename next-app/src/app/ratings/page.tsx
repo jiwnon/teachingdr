@@ -77,7 +77,7 @@ export default function RatingsPage() {
     <div className="card">
       <h1>2단계: 과목·등급 입력</h1>
       <p className="sub">
-        과목을 선택한 뒤, 학생별·단원별로 상/중/하를 선택하세요. (변경 시 자동 저장)
+        과목을 선택한 뒤, 학생별·단원별로 매우잘함/잘함/보통/노력요함을 선택하세요. (변경 시 자동 저장)
       </p>
 
       <section className="subject-section">
@@ -129,9 +129,10 @@ export default function RatingsPage() {
                               }}
                             >
                               <option value="">선택</option>
-                              <option value="1">상</option>
-                              <option value="2">중</option>
-                              <option value="3">하</option>
+                              <option value="1">매우잘함</option>
+                              <option value="2">잘함</option>
+                              <option value="3">보통</option>
+                              <option value="4">노력요함</option>
                             </select>
                           </td>
                         ))
@@ -151,9 +152,10 @@ export default function RatingsPage() {
                             }}
                           >
                             <option value="">선택</option>
-                            <option value="1">상</option>
-                            <option value="2">중</option>
-                            <option value="3">하</option>
+                            <option value="1">매우잘함</option>
+                            <option value="2">잘함</option>
+                            <option value="3">보통</option>
+                            <option value="4">노력요함</option>
                           </select>
                         </td>
                       )}

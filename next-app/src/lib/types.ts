@@ -1,9 +1,9 @@
 /**
  * ReportMate MVP - DB 스키마 타입
- * level: 1/2/3 (상/중/하 대체)
+ * level: 1/2/3/4 (매우잘함/잘함/보통/노력요함)
  */
 
-export type Level = '1' | '2' | '3';
+export type Level = '1' | '2' | '3' | '4';
 
 export interface Area {
   id: string;

@@ -27,7 +27,7 @@ for (const row of rows) {
   const level = String(row.level ?? '').trim();
   const sentence = String(row.sentence ?? '').trim();
   if (!area || !level || !sentence) continue;
-  if (!['1', '2', '3'].includes(level)) continue;
+  if (!['1', '2', '3', '4'].includes(level)) continue;
   const key = `${area}\t${level}\t${sentence}`;
   if (seen.has(key)) continue;
   seen.add(key);

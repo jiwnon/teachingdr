@@ -1,5 +1,5 @@
 /**
- * 단원별 등급 입력 테이블 (행=학생, 열=단원, 셀=상/중/하)
+ * 단원별 등급 입력 테이블 (행=학생, 열=단원, 셀=매우잘함/잘함/보통/노력요함)
  * 뼈대만 구성. 단원 목록·학생 목록·저장 로직 연동 예정.
  */
 'use client';
@@ -46,9 +46,10 @@ export default function GradeTable({
                     }
                   >
                     <option value="">-</option>
-                    <option value="상">상</option>
-                    <option value="중">중</option>
-                    <option value="하">하</option>
+                    <option value="1">매우잘함</option>
+                    <option value="2">잘함</option>
+                    <option value="3">보통</option>
+                    <option value="4">노력요함</option>
                   </select>
                 </td>
               ))}

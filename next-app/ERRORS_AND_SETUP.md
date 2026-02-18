@@ -14,11 +14,12 @@
 |------|------|
 | **.env.local** | `next-app` 폴더에 생성. `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` 설정 (Supabase 대시보드 → Project Settings → API). |
 | **Supabase 마이그레이션** | `supabase/migrations/20240216100000_rm_mvp_schema.sql` 적용 (areas, templates, students, ratings 테이블 생성). |
-| **areas 데이터** | `areas` 테이블에 국어/수학 단원 행이 있어야 `/ratings`, `/review`에서 열이 보임. 수동 insert 또는 별도 시드 스크립트 필요. |
+| **areas 데이터** | `areas` 테이블에 국어/수학 단원 행이 있어야 `/ratings`, `/review`에서 열이 보임. **국어**: `node scripts/seed-국어-평어.mjs` 실행으로 단원+평어 문장 일괄 등록 가능. |
 
 ## 3. 있으면 좋은 것
 
-- **templates 시드**: `scripts/seed-templates.mjs`로 xlsx → templates insert. (areas가 먼저 있어야 함.)
+- **국어 평어 시드**: `next-app` 폴더에서 `node scripts/seed-국어-평어.mjs` 실행. `.env.local` 있으면 자동 로드. areas 13개(한글놀이, 글자를 만들어요, … 국어 종합, 자기소개 발표, 매체 관심, 띄어 읽기, 문장 부호 쓰임) + 평어 문장 수백 개 삽입.
+- **templates 시드 (xlsx)**: `scripts/seed-templates.mjs`로 xlsx → templates insert. (areas가 먼저 있어야 함.)
 - **학생 데이터**: `/students`에서 직접 입력 후 저장하면 됨.
 
 ## 4. 자주 나오는 에러
