@@ -285,6 +285,24 @@ body {
   color: var(--color-text);
 }
 
+.form-row {
+  margin-bottom: 14px;
+}
+.form-row label {
+  display: block;
+  font-weight: 500;
+  font-size: 0.9rem;
+  margin-bottom: 6px;
+  color: var(--color-text);
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  min-height: 36px;
+  min-width: auto;
+}
+
 .ratings-section {
   margin-top: 8px;
 }
@@ -330,6 +348,14 @@ body {
   color: var(--color-text-muted);
   padding: 24px;
   text-align: center;
+}
+
+.link {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+.link:hover {
+  text-decoration: underline;
 }
 
 /* 홈 스텝 링크 */

@@ -7,9 +7,11 @@
 
 drop table if exists public.results;
 drop table if exists public.grades;
+drop table if exists public.ratings;
 drop table if exists public.students;
 drop table if exists public.projects;
 drop table if exists public.templates;
+drop table if exists public.areas;
 
 -- -----------------------------------------------------------------------------
 -- templates: 단원별·등급별 평어 문장 템플릿

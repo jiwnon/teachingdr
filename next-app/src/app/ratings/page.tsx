@@ -7,6 +7,7 @@ import { useAppStore } from '@/store/app-store';
 import type { Level } from '@/lib/types';
 import type { Area } from '@/lib/types';
 import type { Student } from '@/lib/types';
+import type { SubjectCode } from '@/lib/types';
 
 export default function RatingsPage() {
   const { subject, setSubject } = useAppStore();
@@ -17,6 +18,7 @@ export default function RatingsPage() {
   const [error, setError] = useState<string | null>(null);
 
   const sub = subject ?? '국어';
+  const sem = 1; // 기존 단일 페이지는 1학기 기준 (학급 흐름에서는 /classes/[id]/ratings 사용)
 
   useEffect(() => {
     if (!hasSupabaseEnv()) {
@@ -28,7 +30,7 @@ export default function RatingsPage() {
     const supabase = createClient();
     Promise.all([
       supabase.from('students').select('id, number, name').order('number'),
-      supabase.from('areas').select('id, subject, name, order_index').eq('subject', sub).order('order_index'),
+      supabase.from('areas').select('id, subject, name, order_index, semester').eq('subject', sub).eq('semester', sem).order('order_index'),
       supabase.from('ratings').select('student_id, area_id, level'),
     ])
       .then(([s, a, r]) => {
@@ -86,10 +88,13 @@ export default function RatingsPage() {
           id="subject-select"
           className="input input-subject"
           value={sub}
-          onChange={(e) => setSubject(e.target.value as '국어' | '수학')}
+          onChange={(e) => setSubject(e.target.value as SubjectCode)}
         >
           <option value="국어">국어</option>
           <option value="수학">수학</option>
+          <option value="바생">바른생활</option>
+          <option value="슬생">슬기로운생활</option>
+          <option value="즐생">즐거운생활</option>
         </select>
       </section>
 
