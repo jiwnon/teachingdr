@@ -1,6 +1,15 @@
 {
-  "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "grade-helper",
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "report-mate",
+  "main": ".open-next/worker.js",
   "compatibility_date": "2025-02-01",
-  "comment": "Pages 정적 배포 시: wrangler pages deploy ./out --project-name=grade-helper. env는 Dashboard에서 설정."
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "report-mate" }],
+  "images": { "binding": "IMAGES" },
+  "workers_dev": false,
+  "routes": [
+    { "pattern": "report-mate.org", "custom_domain": true },
+    { "pattern": "www.report-mate.org", "custom_domain": true }
+  ]
 }

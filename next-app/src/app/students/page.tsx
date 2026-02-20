@@ -18,19 +18,21 @@ export default function StudentsPage() {
       return;
     }
     setError(null);
-    createClient()
-      .from('students')
-      .select('id, number, name')
-      .order('number')
-      .then(({ data, error: err }) => {
+    const run = async () => {
+      try {
+        const { data, error: err } = await createClient()
+          .from('students')
+          .select('id, number, name')
+          .order('number');
         if (err) setError(err.message);
         else setRows((data ?? []).map((r) => ({ id: r.id, number: r.number, name: r.name })));
+      } catch (e) {
+        setError((e as Error)?.message ?? '로드 실패');
+      } finally {
         setLoading(false);
-      })
-      .catch((e) => {
-        setError(e?.message ?? '로드 실패');
-        setLoading(false);
-      });
+      }
+    };
+    void run();
   }, [setRows]);
 
   const handleSave = async () => {

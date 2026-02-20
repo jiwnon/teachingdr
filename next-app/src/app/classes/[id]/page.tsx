@@ -28,24 +28,26 @@ export default function ClassDetailPage() {
       return;
     }
     setError(null);
-    createClient()
-      .from('classrooms')
-      .select('id, grade, class_number, name')
-      .eq('id', id)
-      .single()
-      .then(({ data, error: err }) => {
+    const run = async () => {
+      try {
+        const { data, error: err } = await createClient()
+          .from('classrooms')
+          .select('id, grade, class_number, name')
+          .eq('id', id)
+          .single();
         if (err) setError(err.message);
-        else {
+        else if (data) {
           const c = data as Classroom;
           setClassroomState(c);
           setClassroom(c);
         }
+      } catch (e) {
+        setError((e as Error)?.message ?? '로드 실패');
+      } finally {
         setLoading(false);
-      })
-      .catch((e) => {
-        setError(e?.message ?? '로드 실패');
-        setLoading(false);
-      });
+      }
+    };
+    void run();
   }, [id, setClassroom]);
 
   const currentSubject = (): SubjectCode | null => {

@@ -47,14 +47,15 @@ function ClassRatingsContent() {
     setAreas([]);
     setRatings({});
     const supabase = createClient();
-    Promise.all([
-      supabase.from('classrooms').select('id, grade, class_number, name').eq('id', id).single(),
-      supabase.from('students').select('id, number, name').eq('classroom_id', id).order('number'),
-      supabase.from('areas').select('id, subject, name, order_index, semester').eq('subject', subject).eq('semester', semester).order('order_index'),
-      supabase.from('ratings').select('student_id, area_id, level'),
-      supabase.from('activities').select('id, classroom_id, semester, subject, description, created_at').eq('classroom_id', id).eq('semester', semester).eq('subject', subject).order('created_at', { ascending: true }),
-    ])
-      .then(([c, s, a, r, act]) => {
+    const run = async () => {
+      try {
+        const [c, s, a, r, act] = await Promise.all([
+          supabase.from('classrooms').select('id, grade, class_number, name').eq('id', id).single(),
+          supabase.from('students').select('id, number, name').eq('classroom_id', id).order('number'),
+          supabase.from('areas').select('id, subject, name, order_index, semester').eq('subject', subject).eq('semester', semester).order('order_index'),
+          supabase.from('ratings').select('student_id, area_id, level'),
+          supabase.from('activities').select('id, classroom_id, semester, subject, description, created_at').eq('classroom_id', id).eq('semester', semester).eq('subject', subject).order('created_at', { ascending: true }),
+        ]);
         if (c.error) setError(c.error.message);
         else if (c.data) {
           setClassroomState(c.data as Classroom);
@@ -79,12 +80,13 @@ function ClassRatingsContent() {
         }
         if (!c.error && act.error) setError(act.error.message);
         else if (!c.error) setActivities((act.data ?? []) as Activity[]);
+      } catch (e) {
+        setError((e as Error)?.message ?? '로드 실패');
+      } finally {
         setLoading(false);
-      })
-      .catch((e) => {
-        setError(e?.message ?? '로드 실패');
-        setLoading(false);
-      });
+      }
+    };
+    void run();
   }, [id, semester, subject, setClassroom, setSemester, setSubject]);
 
   // 단원/레벨단계는 세션만 유지 → 없으면 단원 선택으로

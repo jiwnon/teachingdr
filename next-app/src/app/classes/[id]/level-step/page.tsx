@@ -40,12 +40,13 @@ function LevelStepContent() {
       return;
     }
     setError(null);
-    createClient()
-      .from('classrooms')
-      .select('id, grade, class_number, name')
-      .eq('id', id)
-      .single()
-      .then(({ data, error: err }) => {
+    const run = async () => {
+      try {
+        const { data, error: err } = await createClient()
+          .from('classrooms')
+          .select('id, grade, class_number, name')
+          .eq('id', id)
+          .single();
         if (err) setError(err.message);
         else if (data) {
           setClassroomState(data as Classroom);
@@ -53,12 +54,13 @@ function LevelStepContent() {
         }
         setSemester(semester);
         setSubject(subject);
+      } catch (e) {
+        setError((e as Error)?.message ?? '로드 실패');
+      } finally {
         setLoading(false);
-      })
-      .catch((e) => {
-        setError(e?.message ?? '로드 실패');
-        setLoading(false);
-      });
+      }
+    };
+    void run();
   }, [id, semester, subject, setClassroom, setSemester, setSubject]);
 
   const goNext = (step: LevelStep) => {

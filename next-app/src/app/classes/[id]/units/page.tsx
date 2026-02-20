@@ -36,11 +36,12 @@ function UnitsContent() {
     }
     setError(null);
     const supabase = createClient();
-    Promise.all([
-      supabase.from('classrooms').select('id, grade, class_number, name').eq('id', id).single(),
-      supabase.from('areas').select('id, subject, name, order_index, semester').eq('subject', subject).eq('semester', semester).order('order_index'),
-    ])
-      .then(([c, a]) => {
+    const run = async () => {
+      try {
+        const [c, a] = await Promise.all([
+          supabase.from('classrooms').select('id, grade, class_number, name').eq('id', id).single(),
+          supabase.from('areas').select('id, subject, name, order_index, semester').eq('subject', subject).eq('semester', semester).order('order_index'),
+        ]);
         if (c.error) setError(c.error.message);
         else if (c.data) {
           setClassroomState(c.data as Classroom);
@@ -54,12 +55,13 @@ function UnitsContent() {
           setAreas(areaList);
           setSelected(new Set(areaList.filter((x) => selectedAreaIds.includes(x.id)).map((x) => x.id)));
         }
+      } catch (e) {
+        setError((e as Error)?.message ?? '로드 실패');
+      } finally {
         setLoading(false);
-      })
-      .catch((e) => {
-        setError(e?.message ?? '로드 실패');
-        setLoading(false);
-      });
+      }
+    };
+    void run();
   }, [id, semester, subject, setClassroom, setSemester, setSubject]);
 
   const toggle = (areaId: string) => {

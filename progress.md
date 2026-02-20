@@ -9,7 +9,8 @@
 - **이름**: ReportMate (RM)
 - **목적**: 초등 1학년 1학기 **국어/수학** 생활기록부 평어 자동 생성 **웹앱** (엑셀 대체용)
 - **성격**: 단일 반 도구. **SaaS 아님.** 로그인·프로젝트·멀티테넌트 없음.
-- **스택**: Next.js 14 (App Router) + TypeScript, Supabase (Postgres), Zustand.
+- **스택**: Next.js 15 (App Router) + TypeScript, Supabase (Postgres), Zustand.
+- **배포**: Cloudflare Workers (OpenNext). **접속 URL**: https://report-mate.org (www.report-mate.org 동일). workers.dev 비활성화.
 
 **핵심 제약**
 
@@ -56,6 +57,7 @@
 | 템플릿 시드 | ✅ | **국어·수학** 1학년 1학기: `seed-국어수학-평어.mjs` + seed-data JSON 4개 (areas 2개, 평어 문장 2개). 국어·수학 종합 제거됨. |
 | /review | ✅ | **선택된 단원만** 기준 평어. 학급·학기·과목·activities 조회. 활동 있으면 GPT 재작성, 로딩·수정·복사. |
 | 에러/환경 | ✅ | hasSupabaseEnv, .env.local 안내 |
+| 배포 | ✅ | Cloudflare Workers (OpenNext). report-mate.org 커스텀 도메인. `npm run deploy:cf` |
 | 엑셀 다운로드 | ❌ | 미구현 |
 | 통합(바생·슬생·즐생) templates 시드 | ❌ | 필요 시 추가 |
 
@@ -94,6 +96,9 @@ next-app/
 │   ├── app-store.ts                     # classroom, semester, subject, selectedAreaIds, levelStep
 │   └── students-store.ts
 ├── src/styles/globals.css
+├── wrangler.jsonc                        # Cloudflare Worker: report-mate.org, www, workers_dev=false
+├── open-next.config.ts                   # OpenNext Cloudflare
+├── DEPLOY.md                             # 배포 가이드 (환경 변수, report-mate.org)
 ├── supabase/migrations/
 │   ├── 20240216000000_elementary_comment_schema.sql
 │   ├── 20240216100000_rm_mvp_schema.sql
@@ -144,6 +149,7 @@ UI 등급 표기: **1=매우잘함, 2=잘함, 3=보통, 4=노력요함.**
 - [x] 학급 → 학기 → 과목 → 단원 선택 → 레벨 단계 선택 → 등급 입력 → 평어 생성 흐름
 - [x] 단원 선택·레벨 단계 세션 유지 (selectedAreaIds, levelStep)
 - [x] 국어·수학 종합 제거 (areas 시드·DB·시드 데이터)
+- [x] Cloudflare Workers 배포 (OpenNext), report-mate.org 커스텀 도메인
 - [ ] 통합(바생·슬생·즐생) templates 시드 (필요 시)
 - [ ] 엑셀 다운로드: review 결과 xlsx 내보내기
 - [ ] npm 빌드 검증
@@ -156,6 +162,7 @@ UI 등급 표기: **1=매우잘함, 2=잘함, 3=보통, 4=노력요함.**
 - **등급 4단계**: 상/중/하 → **매우잘함/잘함/보통/노력요함**(1~4). DB CHECK, 타입, UI 반영.
 - **국어·수학 시드 통합**: areas·templates 데이터 비우기(truncate/삭제) 후, **국어·수학 1학기** 전용 시드 스크립트 `seed-국어수학-평어.mjs` + seed-data 4개(국어/수학 areas, 국어/수학 평어 문장). **국어 종합·수학 종합** 제거(마이그레이션 + JSON 4개 수정).
 - **평어 흐름 확장**: **단원 선택** 단계(체크박스, 최소 1개, 세션만) → **레벨 단계 선택**(2/3/4단계, 세션만) 추가. 등급 입력은 선택 단원·선택 레벨만 표시. DB level은 1~4 유지, 프론트에서 2/3/4단계 매핑. /review는 선택 단원만 사용해 평어 생성.
+- **Cloudflare 배포**: OpenNext(`@opennextjs/cloudflare`)로 Next.js 15 앱을 Workers에 배포. Next 14→15 업그레이드, Supabase/타입 호환 수정. **report-mate.org** 커스텀 도메인 연결, `workers_dev: false`로 workers.dev 비활성화. 배포: `npm run deploy:cf`. 상세: `next-app/DEPLOY.md`.
 
 ---
 
@@ -163,6 +170,6 @@ UI 등급 표기: **1=매우잘함, 2=잘함, 3=보통, 4=노력요함.**
 
 - **학급·학기·과목**: classrooms, students.classroom_id, areas.semester. 국어/수학/통합(바생·슬생·즐생) 1·2학기.
 - **활동 메모 + GPT**: activities 테이블. 등급 페이지에서 입력·삭제. /review에서 활동 있으면 문장별 API 호출.
-- **진행 이력**: MVP → 스키마 → 4단계 등급 → 국어 시드 → 학급·학기·과목 → activities+GPT → **국어·수학 시드 통합·종합 제거** → **단원 선택·레벨 단계 선택**.
-- **설정·에러**: `next-app/ERRORS_AND_SETUP.md`, `next-app/README.md`.
+- **진행 이력**: MVP → 스키마 → 4단계 등급 → 국어 시드 → 학급·학기·과목 → activities+GPT → **국어·수학 시드 통합·종합 제거** → **단원 선택·레벨 단계 선택** → **Cloudflare Workers 배포·report-mate.org**.
+- **설정·에러**: `next-app/ERRORS_AND_SETUP.md`, `next-app/README.md`. **배포**: `next-app/DEPLOY.md`, 접속: https://report-mate.org
 - **시드 재실행**: `node scripts/seed-국어수학-평어.mjs` (next-app 폴더에서, .env.local 필요).

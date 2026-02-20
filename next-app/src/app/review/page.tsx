@@ -59,14 +59,15 @@ export default function ReviewPage() {
             .eq('subject', sub)
         : Promise.resolve({ data: [] as Activity[], error: null });
 
-    Promise.all([
-      studentsQuery,
-      areasQuery,
-      supabase.from('ratings').select('student_id, area_id, level'),
-      supabase.from('templates').select('id, area_id, level, sentence'),
-      activitiesQuery,
-    ])
-      .then(([s, a, r, t, act]) => {
+    const run = async () => {
+      try {
+        const [s, a, r, t, act] = await Promise.all([
+          studentsQuery,
+          areasQuery,
+          supabase.from('ratings').select('student_id, area_id, level'),
+          supabase.from('templates').select('id, area_id, level, sentence'),
+          activitiesQuery,
+        ]);
         if (s.error) setError(s.error.message);
         else if (a.error) setError(a.error.message);
         else if (r.error) setError(r.error.message);
@@ -80,12 +81,13 @@ export default function ReviewPage() {
           setActivities(((act as { data?: Activity[] }).data ?? []) as Activity[]);
           setGptTexts({});
         }
+      } catch (e) {
+        setError((e as Error)?.message ?? '로드 실패');
+      } finally {
         setLoading(false);
-      })
-      .catch((e) => {
-        setError(e?.message ?? '로드 실패');
-        setLoading(false);
-      });
+      }
+    };
+    void run();
   }, [sub, sem, classroom?.id]);
 
   const areasFiltered =

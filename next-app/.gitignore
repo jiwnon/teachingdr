@@ -8,6 +8,7 @@ node_modules
 out
 build
 dist
+.open-next
 
 # Env (절대 커밋 금지)
 .env
@@ -15,6 +16,9 @@ dist
 .env.development.local
 .env.test.local
 .env.production.local
+.dev.vars
+.secrets.local.md
+env-keys.local.*
 
 # Debug
 npm-debug.log*

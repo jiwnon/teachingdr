@@ -26,21 +26,23 @@ export default function ClassStudentsPage() {
     }
     setError(null);
     const supabase = createClient();
-    Promise.all([
-      supabase.from('classrooms').select('id, grade, class_number, name').eq('id', id).single(),
-      supabase.from('students').select('id, number, name').eq('classroom_id', id).order('number'),
-    ])
-      .then(([c, s]) => {
+    const run = async () => {
+      try {
+        const [c, s] = await Promise.all([
+          supabase.from('classrooms').select('id, grade, class_number, name').eq('id', id).single(),
+          supabase.from('students').select('id, number, name').eq('classroom_id', id).order('number'),
+        ]);
         if (c.error) setError(c.error.message);
         else setClassroom(c.data as Classroom);
         if (!c.error && s.error) setError(s.error.message);
         else if (!c.error) setRows((s.data ?? []).map((r: Student) => ({ id: r.id, number: r.number, name: r.name })));
+      } catch (e) {
+        setError((e as Error)?.message ?? '로드 실패');
+      } finally {
         setLoading(false);
-      })
-      .catch((e) => {
-        setError(e?.message ?? '로드 실패');
-        setLoading(false);
-      });
+      }
+    };
+    void run();
   }, [id]);
 
   const addRow = () => {

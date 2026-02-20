@@ -11,6 +11,8 @@
     "db:generate": "supabase gen types typescript --project-id $SUPABASE_PROJECT_ID > src/types/database.gen.ts",
     "db:migrate": "supabase db push",
     "seed:templates": "node scripts/seed-templates.mjs",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy:cf": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "cf:pages:deploy": "npx wrangler pages deploy ./out --project-name=grade-helper",
     "cf:check": "npx wrangler check",
     "cf:types": "npx wrangler types"
@@ -18,7 +20,6 @@
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.45.4",
-    "next": "14.2.18",
     "openai": "^4.104.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -26,11 +27,13 @@
     "zustand": "^5.0.1"
   },
   "devDependencies": {
+    "@opennextjs/cloudflare": "^1.16.5",
     "@types/node": "^22.9.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "eslint": "^8.57.0",
     "eslint-config-next": "14.2.18",
+    "next": "^15.5.12",
     "typescript": "^5.6.3",
     "wrangler": "^3.93.0"
   },

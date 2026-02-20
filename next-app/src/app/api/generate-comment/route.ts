@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     const templateSentence =
       typeof body?.templateSentence === 'string' ? body.templateSentence : '';
     const activities = Array.isArray(body?.activities)
-      ? body.activities.filter((a): a is string => typeof a === 'string')
+      ? body.activities.filter((a: unknown): a is string => typeof a === 'string')
       : [];
 
     if (!activities.length) {

@@ -17,20 +17,22 @@ export default function ClassesPage() {
       return;
     }
     setError(null);
-    createClient()
-      .from('classrooms')
-      .select('id, grade, class_number, name')
-      .order('grade')
-      .order('class_number')
-      .then(({ data, error: err }) => {
+    const run = async () => {
+      try {
+        const { data, error: err } = await createClient()
+          .from('classrooms')
+          .select('id, grade, class_number, name')
+          .order('grade')
+          .order('class_number');
         if (err) setError(err.message);
         else setList((data ?? []) as Classroom[]);
+      } catch (e) {
+        setError((e as Error)?.message ?? '로드 실패');
+      } finally {
         setLoading(false);
-      })
-      .catch((e) => {
-        setError(e?.message ?? '로드 실패');
-        setLoading(false);
-      });
+      }
+    };
+    void run();
   }, []);
 
   if (loading) return <div className="loading">로딩 중...</div>;

@@ -1,5 +1,5 @@
 # =============================================================================
-# Cloudflare Pages - 성적도우미 (wrangler / cloudflare 스킬 반영)
+# [레거시] 정적 Pages 배포용. Workers(OpenNext) 배포는 wrangler.jsonc + DEPLOY.md 참고.
 # =============================================================================
 # wrangler 스킬: compatibility_date 최근 30일 이내 권장, 배포 전 wrangler check
 # cloudflare 스킬: Pages = 정적/프레임워크 빌드 배포

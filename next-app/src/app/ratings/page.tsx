@@ -28,12 +28,13 @@ export default function RatingsPage() {
     }
     setError(null);
     const supabase = createClient();
-    Promise.all([
-      supabase.from('students').select('id, number, name').order('number'),
-      supabase.from('areas').select('id, subject, name, order_index, semester').eq('subject', sub).eq('semester', sem).order('order_index'),
-      supabase.from('ratings').select('student_id, area_id, level'),
-    ])
-      .then(([s, a, r]) => {
+    const run = async () => {
+      try {
+        const [s, a, r] = await Promise.all([
+          supabase.from('students').select('id, number, name').order('number'),
+          supabase.from('areas').select('id, subject, name, order_index, semester').eq('subject', sub).eq('semester', sem).order('order_index'),
+          supabase.from('ratings').select('student_id, area_id, level'),
+        ]);
         if (s.error) setError(s.error.message);
         else if (a.error) setError(a.error.message);
         else if (r.error) setError(r.error.message);
@@ -46,12 +47,13 @@ export default function RatingsPage() {
           }
           setRatings(map);
         }
+      } catch (e) {
+        setError((e as Error)?.message ?? '로드 실패');
+      } finally {
         setLoading(false);
-      })
-      .catch((e) => {
-        setError(e?.message ?? '로드 실패');
-        setLoading(false);
-      });
+      }
+    };
+    void run();
   }, [sub]);
 
   const setRating = async (studentId: string, areaId: string, level: Level | '') => {
