@@ -1,11 +1,17 @@
-import type { NextAuthOptions } from 'next-auth';
-import GoogleProvider from 'next-auth/providers/google';
+import NextAuth from 'next-auth';
+import Google from 'next-auth/providers/google';
 
-export const authOptions: NextAuthOptions = {
+const isProduction = process.env.NEXTAUTH_URL?.includes('report-mate.org');
+
+const sharedCookieOptions = isProduction
+  ? { httpOnly: true, sameSite: 'lax' as const, path: '/', secure: true, domain: '.report-mate.org' }
+  : { httpOnly: true, sameSite: 'lax' as const, path: '/', secure: false };
+
+export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID ?? '',
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
+    Google({
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     }),
   ],
   callbacks: {
@@ -20,6 +26,12 @@ export const authOptions: NextAuthOptions = {
     signIn: '/',
   },
   secret: process.env.NEXTAUTH_SECRET,
-  // @ts-expect-error trustHost is supported at runtime but not in the type definitions
   trustHost: true,
-};
+  cookies: isProduction ? {
+    sessionToken: { name: '__Secure-authjs.session-token', options: sharedCookieOptions },
+    callbackUrl: { name: '__Secure-authjs.callback-url', options: sharedCookieOptions },
+    csrfToken: { name: '__Host-authjs.csrf-token', options: { ...sharedCookieOptions, domain: undefined } },
+    pkceCodeVerifier: { name: '__Secure-authjs.pkce.code_verifier', options: sharedCookieOptions },
+    state: { name: '__Secure-authjs.state', options: sharedCookieOptions },
+  } : undefined,
+});

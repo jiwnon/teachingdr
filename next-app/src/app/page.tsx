@@ -2,9 +2,8 @@
  * 메인: 비로그인 시 랜딩(소개+회원가입/구글), 로그인 시 학급 중심 안내
  */
 import { headers } from 'next/headers';
-import { getServerSession } from 'next-auth';
 import Link from 'next/link';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/lib/auth';
 import LandingAuth from '@/components/LandingAuth';
 
 type PageProps = { searchParams: Promise<{ error?: string }> };
@@ -17,7 +16,7 @@ async function getRequiredRedirectUri() {
 }
 
 export default async function HomePage({ searchParams }: PageProps) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   const params = await searchParams;
   const requiredRedirectUri = await getRequiredRedirectUri();
 

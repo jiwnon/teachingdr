@@ -9,7 +9,7 @@
 - **이름**: ReportMate (RM)
 - **목적**: 초등 1학년 1학기 **국어/수학** 생활기록부 평어 자동 생성 **웹앱** (엑셀 대체용)
 - **성격**: 단일 반 도구. **SaaS 아님.** 로그인·프로젝트·멀티테넌트 없음.
-- **스택**: Next.js 15 (App Router) + TypeScript, Supabase (Postgres), Zustand, **NextAuth v4 (Google OAuth)**.
+- **스택**: Next.js 15 (App Router) + TypeScript, Supabase (Postgres), Zustand, **Auth.js v5 / next-auth@5 (Google OAuth)**.
 - **배포**: Cloudflare Workers (OpenNext). **접속 URL**: https://report-mate.org (www.report-mate.org 동일). workers.dev 비활성화.
 - **인증**: 비로그인도 학급→등급→평어 생성까지 **체험 가능**(저장 안 됨). 로그인 시 본인 학급만 저장·조회.
 
@@ -52,7 +52,7 @@
 
 | 구분 | 상태 | 비고 |
 |------|------|------|
-| 인증 | ✅ | NextAuth v4, Google OAuth. `signIn('google')` (POST 방식). API `[...nextauth]` 단순 핸들러. |
+| 인증 | ✅ | **Auth.js v5 (next-auth@5)**, Google OAuth. `signIn('google')` (POST 방식). API `[...nextauth]` handlers export. Web Fetch API 사용 → Cloudflare Workers 호환. |
 | 데이터 격리 | ✅ | `classrooms.user_id`, Server Actions로 목록/생성/소유 확인. 타 사용자 학급 미노출 |
 | 비로그인 체험 | ✅ | 게스트 스토어(Zustand). 학급·학생·등급·활동 메모리만, DB 미저장. ID 접두사 `guest-` |
 | 라우팅 | ✅ | `/`, `/classes`, `/classes/new`, `/classes/[id]`, `/classes/[id]/students`, `/classes/[id]/units`, `/classes/[id]/level-step`, `/classes/[id]/ratings`, `/review`. `/students`, `/ratings`는 `/classes`로 리다이렉트. |
@@ -97,7 +97,7 @@ next-app/
 │   ├── LandingAuth.tsx                  # 랜딩: 회원가입 버튼(signIn('google')), 체험하기 링크
 │   └── SessionProvider.tsx              # next-auth SessionProvider 래퍼
 ├── src/lib/
-│   ├── auth.ts                          # NextAuth authOptions (Google, session.user.id, trustHost)
+│   ├── auth.ts                          # Auth.js v5: NextAuth() → { handlers, auth, signIn, signOut } export
 │   ├── generator.ts                     # deterministic 평어 생성
 │   ├── types.ts                         # Classroom, Semester, SubjectCode, Level, LevelStep, Area, ...
 │   ├── actions/classrooms.ts            # Server Actions: 학급 CRUD, 학생, 등급, 활동, 리뷰 데이터
@@ -156,7 +156,7 @@ UI 등급 표기: **1=매우잘함, 2=잘함, 3=보통, 4=노력요함.**
 - **로컬**: `next-app/.env.local` → `NEXTAUTH_URL=http://localhost:3000`, NextAuth 4개 값, Supabase 2개 값, OPENAI_API_KEY(선택).
 - **배포**: Cloudflare Workers. `wrangler.jsonc`에 vars(NEXTAUTH_URL, AUTH_TRUST_HOST, GOOGLE_CLIENT_ID). Secrets: NEXTAUTH_SECRET, GOOGLE_CLIENT_SECRET. `npm run deploy:cf`.
 - **Google OAuth**: 테스트 앱이면 OAuth 동의 화면 → 테스트 사용자에 이메일 등록 필요.
-- **인증 방식**: `signIn('google', { callbackUrl: '/auth/popup-done' })` (POST 방식, CSRF 검증 후 OAuth 시작). GET 링크 방식은 NextAuth v4의 `pages.signIn` 설정과 충돌하므로 사용 금지.
+- **인증 방식**: `signIn('google', { callbackUrl: '/auth/popup-done' })` (POST 방식, CSRF 검증 후 OAuth 시작). Auth.js v5는 Web Fetch API 사용 → Cloudflare Workers 완전 호환. 서버에서 세션 조회: `auth()` (getServerSession 대신).
 
 ---
 
