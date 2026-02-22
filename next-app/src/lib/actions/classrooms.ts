@@ -112,7 +112,7 @@ export async function upsertStudentsForClassroomAction(
   return { students: (data ?? []) as Student[] };
 }
 
-/** 소유 확인 후 학급 + areas 반환 (areas는 과목/학기 공용) */
+/** 소유 확인 후 학급 + areas 반환 (areas는 과목/학기 공용). subject=통합이면 subject='통합' areas. */
 export async function getClassroomWithAreasAction(
   classroomId: string,
   subject: string,

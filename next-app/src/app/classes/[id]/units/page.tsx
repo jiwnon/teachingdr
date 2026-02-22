@@ -12,7 +12,13 @@ import type { Area } from '@/lib/types';
 import type { Classroom } from '@/lib/types';
 import type { SubjectCode } from '@/lib/types';
 import type { Semester } from '@/lib/types';
-import { SUBJECT_LABELS } from '@/lib/types';
+import { SUBJECT_LABELS, INTEGRATED_THEMES, INTEGRATED_LIVES } from '@/lib/types';
+
+/** 통합 area name "학교(바른생활)" → { theme: '학교', life: '바른생활' } */
+function parseIntegratedAreaName(name: string): { theme: string; life: string } | null {
+  const m = name.match(/^(.+)\((.+)\)$/);
+  return m ? { theme: m[1], life: m[2] } : null;
+}
 
 function UnitsContent() {
   const params = useParams();
@@ -31,6 +37,12 @@ function UnitsContent() {
   const [classroom, setClassroomState] = useState<Classroom | null>(null);
   const [areas, setAreas] = useState<Area[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set(selectedAreaIds));
+  /** 통합 전용: 바른생활/슬기로운생활/즐거운생활 각 선택한 테마(학교|사람들|우리나라|탐험) */
+  const [selectedByLife, setSelectedByLife] = useState<Record<string, string>>({
+    바른생활: '',
+    슬기로운생활: '',
+    즐거운생활: '',
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -92,6 +104,19 @@ function UnitsContent() {
       .finally(() => setLoading(false));
   }, [id, semester, subject, session, status, getGuestClassroom, setClassroom, setSemester, setSubject, selectedAreaIds]);
 
+  // 통합: 기존 selectedAreaIds(3개)에서 selectedByLife 복원 (뒤로가기 시)
+  useEffect(() => {
+    if (subject !== '통합' || areas.length === 0 || selectedAreaIds.length !== 3) return;
+    const areaByName = new Map(areas.map((a) => [a.name, a]));
+    const next: Record<string, string> = { 바른생활: '', 슬기로운생활: '', 즐거운생활: '' };
+    for (const a of areas) {
+      if (!selectedAreaIds.includes(a.id)) continue;
+      const parsed = parseIntegratedAreaName(a.name);
+      if (parsed && (parsed.life === '바른생활' || parsed.life === '슬기로운생활' || parsed.life === '즐거운생활')) next[parsed.life] = parsed.theme;
+    }
+    setSelectedByLife((prev) => (prev.바른생활 && prev.슬기로운생활 && prev.즐거운생활 ? prev : next));
+  }, [subject, areas, selectedAreaIds]);
+
   const toggle = (areaId: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -101,12 +126,26 @@ function UnitsContent() {
     });
   };
 
+  const isIntegrated = subject === '통합';
+  const areaByName = isIntegrated ? new Map(areas.map((a) => [a.name, a])) : null;
+  const integratedSelectedIds: string[] = isIntegrated && areaByName
+    ? INTEGRATED_LIVES.map(({ key: life }) => {
+        const theme = selectedByLife[life];
+        if (!theme) return null;
+        const area = areaByName.get(`${theme}(${life})`);
+        return area?.id ?? null;
+      }).filter((id): id is string => id != null)
+    : [];
+
   const goNext = () => {
-    const ids = Array.from(selected);
+    const ids = isIntegrated ? integratedSelectedIds : Array.from(selected);
     if (ids.length === 0) return;
+    if (isIntegrated && ids.length !== 3) return;
     setSelectedAreaIds(ids);
     router.push(`/classes/${id}/level-step?sem=${semester}&subject=${subject}`);
   };
+
+  const canGoNext = isIntegrated ? integratedSelectedIds.length === 3 : selected.size > 0;
 
   if (loading) return <div className="loading">로딩 중...</div>;
   if (error) return <div className="alert alert-error">{error}</div>;
@@ -115,21 +154,49 @@ function UnitsContent() {
   return (
     <div className="card">
       <h1>{classroom.name} · {semester}학기 · {SUBJECT_LABELS[subject]} 단원 선택</h1>
-      <p className="sub">평가할 단원을 선택하세요. (최소 1개)</p>
+      <p className="sub">
+        {isIntegrated ? '바른생활·슬기로운생활·즐거운생활 각각 단원을 하나씩 선택하세요.' : '평가할 단원을 선택하세요. (최소 1개)'}
+      </p>
 
       <section className="units-section" style={{ marginBottom: 24 }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {areas.map((a) => (
-            <label key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={selected.has(a.id)}
-                onChange={() => toggle(a.id)}
-              />
-              <span>{a.name}</span>
-            </label>
-          ))}
-        </div>
+        {isIntegrated ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {INTEGRATED_LIVES.map(({ key: life, label }) => (
+              <div key={life} style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <span style={{ minWidth: 100 }}>{label}</span>
+                <select
+                  value={selectedByLife[life] ?? ''}
+                  onChange={(e) => setSelectedByLife((prev) => ({ ...prev, [life]: e.target.value }))}
+                  className="btn btn-secondary"
+                  style={{ padding: '8px 12px', minWidth: 140 }}
+                >
+                  <option value="">선택하세요</option>
+                  {INTEGRATED_THEMES.map((theme) => (
+                    <option key={theme} value={theme}>
+                      {theme}
+                    </option>
+                  ))}
+                </select>
+                {selectedByLife[life] && (
+                  <span className="sub">→ {selectedByLife[life]}({life})</span>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {areas.map((a) => (
+              <label key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={selected.has(a.id)}
+                  onChange={() => toggle(a.id)}
+                />
+                <span>{a.name}</span>
+              </label>
+            ))}
+          </div>
+        )}
         {areas.length === 0 && (
           <p className="sub">이 과목·학기에 등록된 단원이 없습니다.</p>
         )}
@@ -140,7 +207,7 @@ function UnitsContent() {
           type="button"
           className="btn btn-primary"
           onClick={goNext}
-          disabled={selected.size === 0}
+          disabled={!canGoNext}
         >
           다음: 레벨 단계 선택
         </button>

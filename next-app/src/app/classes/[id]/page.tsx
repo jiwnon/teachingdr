@@ -10,7 +10,7 @@ import { useGuestStore, isGuestId } from '@/store/guest-store';
 import type { Classroom } from '@/lib/types';
 import type { Semester } from '@/lib/types';
 import type { SubjectCode } from '@/lib/types';
-import { MAIN_SUBJECTS, INTEGRATED_SUBJECTS, SUBJECT_LABELS } from '@/lib/types';
+import { MAIN_SUBJECTS, SUBJECT_LABELS } from '@/lib/types';
 
 export default function ClassDetailPage() {
   const params = useParams();
@@ -24,7 +24,6 @@ export default function ClassDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedSemester, setSelectedSemester] = useState<Semester | null>(null);
   const [selectedMainSubject, setSelectedMainSubject] = useState<'국어' | '수학' | '통합' | null>(null);
-  const [selectedSubSubject, setSelectedSubSubject] = useState<SubjectCode | null>(null);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -58,10 +57,8 @@ export default function ClassDetailPage() {
   }, [id, session, status, getGuestClassroom, setClassroom]);
 
   const currentSubject = (): SubjectCode | null => {
-    if (selectedMainSubject === '국어') return '국어';
-    if (selectedMainSubject === '수학') return '수학';
-    if (selectedMainSubject === '통합') return selectedSubSubject;
-    return null;
+    if (!selectedMainSubject) return null;
+    return selectedMainSubject;
   };
 
   if (loading) return <div className="loading">로딩 중...</div>;
@@ -104,36 +101,25 @@ export default function ClassDetailPage() {
                 key={s}
                 type="button"
                 className={`btn ${selectedMainSubject === s ? 'btn-primary' : 'btn-secondary'}`}
-                onClick={() => {
-                  setSelectedMainSubject(s);
-                  if (s !== '통합') setSelectedSubSubject(null);
-                }}
+                onClick={() => setSelectedMainSubject(s)}
               >
-                {s === '통합' ? '통합' : s}
+                {s}
               </button>
             ))}
           </div>
-          {selectedMainSubject === '통합' && (
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-              {INTEGRATED_SUBJECTS.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  className={`btn ${selectedSubSubject === s ? 'btn-primary' : 'btn-ghost'}`}
-                  onClick={() => setSelectedSubSubject(s)}
-                >
-                  {SUBJECT_LABELS[s]}
-                </button>
-              ))}
-            </div>
-          )}
           {currentSubject() && (
             <div style={{ marginTop: 16 }}>
               <Link
-                href={`/classes/${id}/units?sem=${selectedSemester}&subject=${currentSubject()}`}
+                href={
+                  currentSubject() === '통합'
+                    ? `/classes/${id}/ratings?sem=${selectedSemester}&subject=통합`
+                    : `/classes/${id}/units?sem=${selectedSemester}&subject=${currentSubject()}`
+                }
                 className="btn btn-primary"
               >
-                단원 선택 후 등급 입력 ({selectedSemester}학기 · {SUBJECT_LABELS[currentSubject()!]})
+                {currentSubject() === '통합'
+                  ? `등급 입력 (${selectedSemester}학기 · 통합)`
+                  : `단원 선택 후 등급 입력 (${selectedSemester}학기 · ${SUBJECT_LABELS[currentSubject()!]})`}
               </Link>
             </div>
           )}

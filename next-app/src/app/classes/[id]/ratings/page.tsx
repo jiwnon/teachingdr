@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, useRef, Suspense } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
@@ -14,8 +14,19 @@ import type { Student } from '@/lib/types';
 import type { Classroom } from '@/lib/types';
 import type { Activity } from '@/lib/types';
 import type { LevelStep } from '@/lib/types';
-import { SUBJECT_LABELS, LEVEL_STEP_OPTIONS, levelToSelectValue } from '@/lib/types';
+import { SUBJECT_LABELS, LEVEL_STEP_OPTIONS, levelToSelectValue, INTEGRATED_THEMES, INTEGRATED_LIVES } from '@/lib/types';
 import type { SubjectCode } from '@/lib/types';
+
+/** 통합 area name "학교(바른생활)" → { theme: '학교', life: '바른생활' } */
+function parseIntegratedAreaName(name: string): { theme: string; life: string } | null {
+  const m = name.match(/^(.+)\((.+)\)$/);
+  return m ? { theme: m[1], life: m[2] } : null;
+}
+
+function defaultLevelForStep(step: 2 | 3 | 4): Level {
+  if (step === 3) return '3';
+  return '2';
+}
 
 function ClassRatingsContent() {
   const params = useParams();
@@ -46,6 +57,12 @@ function ClassRatingsContent() {
   const [activitySaving, setActivitySaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const isIntegrated = subject === '통합';
+  const [levelStepIntegrated, setLevelStepIntegrated] = useState<2 | 3 | 4>(4);
+  /** 통합 전용: studentId -> life -> { theme, level } */
+  const [integratedRatings, setIntegratedRatings] = useState<Record<string, Record<string, { theme: string; level: Level }>>>({});
+  const intDefaultsSavedRef = useRef(false);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -102,8 +119,9 @@ function ClassRatingsContent() {
       .finally(() => setLoading(false));
   }, [id, semester, subject, session, status, getGuestClassroom, getGuestStudents, getGuestRatings, getGuestActivities, setClassroom, setSemester, setSubject]);
 
-  // 단원/레벨단계는 세션만 유지 → 없으면 단원 선택으로
+  // 국어/수학만: 단원·레벨단계 없으면 해당 페이지로
   useEffect(() => {
+    if (isIntegrated) return;
     if (!loading && !error && selectedAreaIds.length === 0) {
       router.replace(`/classes/${id}/units?sem=${semester}&subject=${subject}`);
       return;
@@ -112,10 +130,48 @@ function ClassRatingsContent() {
       router.replace(`/classes/${id}/level-step?sem=${semester}&subject=${subject}`);
       return;
     }
-  }, [loading, error, selectedAreaIds.length, levelStep, id, semester, subject, router]);
+  }, [loading, error, isIntegrated, selectedAreaIds.length, levelStep, id, semester, subject, router]);
+
+  // 통합: areas·ratings 로드 후 integratedRatings 초기화 (DB 값 반영, levelToSelectValue 적용)
+  useEffect(() => {
+    if (!isIntegrated || areas.length === 0 || students.length === 0) return;
+    const defaultLev = defaultLevelForStep(levelStepIntegrated);
+    const next: Record<string, Record<string, { theme: string; level: Level }>> = {};
+    for (const st of students) {
+      next[st.id] = { 바른생활: { theme: '학교', level: defaultLev }, 슬기로운생활: { theme: '학교', level: defaultLev }, 즐거운생활: { theme: '학교', level: defaultLev } };
+      for (const a of areas) {
+        const parsed = parseIntegratedAreaName(a.name);
+        if (!parsed || !(parsed.life === '바른생활' || parsed.life === '슬기로운생활' || parsed.life === '즐거운생활')) continue;
+        const key = ratingKey(st.id, a.id);
+        const dbLevel = ratings[key];
+        if (dbLevel) {
+          next[st.id][parsed.life] = { theme: parsed.theme, level: levelToSelectValue(dbLevel, levelStepIntegrated) };
+        }
+      }
+    }
+    setIntegratedRatings(next);
+  }, [isIntegrated, areas, students, ratings, levelStepIntegrated]);
+
+  // 통합: 기본값을 DB에 저장 (최초 1회, 기존 rating이 없는 학생만)
+  useEffect(() => {
+    if (!isIntegrated || areas.length === 0 || students.length === 0 || intDefaultsSavedRef.current) return;
+    intDefaultsSavedRef.current = true;
+    const defaultLev = defaultLevelForStep(levelStepIntegrated);
+    const areaMap = new Map(areas.map((a) => [a.name, a]));
+    for (const st of students) {
+      for (const { key: life } of INTEGRATED_LIVES) {
+        const area = areaMap.get(`학교(${life})`);
+        if (!area) continue;
+        const key = ratingKey(st.id, area.id);
+        if (ratings[key]) continue;
+        setRating(st.id, area.id, defaultLev);
+      }
+    }
+  }, [isIntegrated, areas, students]);
 
   const areasFiltered = areas.filter((a) => selectedAreaIds.includes(a.id));
-  const levelOptions = levelStep ? LEVEL_STEP_OPTIONS[levelStep] : [];
+  const levelStepForOptions = isIntegrated ? levelStepIntegrated : levelStep;
+  const levelOptions = levelStepForOptions ? LEVEL_STEP_OPTIONS[levelStepForOptions] : [];
 
   const ratingKey = (studentId: string, areaId: string) =>
     isGuestId(id) ? `${studentId}::${areaId}` : `${studentId}-${areaId}`;
@@ -134,6 +190,27 @@ function ClassRatingsContent() {
     }
     const result = await upsertRatingAction(studentId, areaId, level === '' ? null : level);
     if (result.error) setError(result.error);
+  };
+
+  const areaByName = isIntegrated ? new Map(areas.map((a) => [a.name, a])) : null;
+  const setIntegratedRating = (studentId: string, life: string, field: 'theme' | 'level', value: string) => {
+    const cur = integratedRatings[studentId]?.[life] ?? { theme: '학교', level: defaultLevelForStep(levelStepIntegrated) };
+    if (field === 'theme') {
+      const oldArea = areaByName?.get(`${cur.theme}(${life})`);
+      if (oldArea) setRating(studentId, oldArea.id, '');
+      const newArea = areaByName?.get(`${value}(${life})`);
+      if (newArea) setRating(studentId, newArea.id, (cur.level ?? defaultLevelForStep(levelStepIntegrated)) as Level);
+    } else {
+      const area = areaByName?.get(`${cur.theme}(${life})`);
+      if (area) setRating(studentId, area.id, value as Level);
+    }
+    setIntegratedRatings((prev) => {
+      const c = prev[studentId]?.[life] ?? { theme: '학교', level: defaultLevelForStep(levelStepIntegrated) };
+      const next = { ...prev };
+      if (!next[studentId]) next[studentId] = { 바른생활: { theme: '학교', level: '2' }, 슬기로운생활: { theme: '학교', level: '2' }, 즐거운생활: { theme: '학교', level: '2' } };
+      next[studentId] = { ...next[studentId], [life]: { ...c, [field]: value } };
+      return next;
+    });
   };
 
   const addActivity = async () => {
@@ -172,15 +249,35 @@ function ClassRatingsContent() {
   if (loading) return <div className="loading">로딩 중...</div>;
   if (error) return <div className="alert alert-error">{error}</div>;
   if (!classroom) return <div className="alert alert-error">학급을 찾을 수 없습니다.</div>;
-  if (selectedAreaIds.length === 0 || !levelStep) return <div className="loading">이동 중...</div>;
+  if (!isIntegrated && (selectedAreaIds.length === 0 || !levelStep)) return <div className="loading">이동 중...</div>;
 
   return (
     <div className="card">
       <h1>{classroom.name} · {semester}학기 · {SUBJECT_LABELS[subject]} 등급</h1>
       <p className="sub">
-        학생별·선택 단원별로 {levelOptions.map((o) => o.label).join(' / ')} 선택 (변경 시 자동 저장)
+        {isIntegrated
+          ? '학생마다 바른생활·슬기로운생활·즐거운생활 단원과 레벨을 선택하세요. (변경 시 자동 저장)'
+          : `학생별·선택 단원별로 ${levelOptions.map((o) => o.label).join(' / ')} 선택 (변경 시 자동 저장)`}
         {isGuestId(id) && <span style={{ color: 'var(--color-text-muted)' }}> (체험: 저장되지 않음)</span>}
       </p>
+
+      {isIntegrated && (
+        <section style={{ marginBottom: 20 }}>
+          <h2 className="section-title">레벨 단계</h2>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {([2, 3, 4] as const).map((step) => (
+              <button
+                key={step}
+                type="button"
+                className={`btn ${levelStepIntegrated === step ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setLevelStepIntegrated(step)}
+              >
+                {step}단계
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="activities-section" style={{ marginBottom: 24 }}>
         <h2 className="section-title">이번 학기 학습 활동</h2>
@@ -229,6 +326,71 @@ function ClassRatingsContent() {
         <div className="alert alert-error">
           이 학급에 학생이 없습니다. <Link href={`/classes/${id}/students`}>학생 명단</Link>에서 먼저 입력하세요.
         </div>
+      ) : isIntegrated ? (
+        <>
+          <div className="table-wrap ratings-table">
+            <table style={{ tableLayout: 'fixed', width: '100%' }}>
+              <thead>
+                <tr>
+                  <th style={{ width: 48 }}>번호</th>
+                  <th style={{ width: 'auto' }}>이름</th>
+                  {INTEGRATED_LIVES.map(({ key: life, label }) => (
+                    <th key={life} style={{ textAlign: 'center', minWidth: 200 }}>{label}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {students.map((st) => {
+                  const row = integratedRatings[st.id] ?? {
+                    바른생활: { theme: '학교', level: defaultLevelForStep(levelStepIntegrated) },
+                    슬기로운생활: { theme: '학교', level: defaultLevelForStep(levelStepIntegrated) },
+                    즐거운생활: { theme: '학교', level: defaultLevelForStep(levelStepIntegrated) },
+                  };
+                  return (
+                    <tr key={st.id}>
+                      <td>{st.number}</td>
+                      <td>{st.name}</td>
+                      {INTEGRATED_LIVES.map(({ key: life }) => (
+                        <td key={life}>
+                          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'nowrap', minWidth: 0 }}>
+                            <select
+                              className="input input-level"
+                              value={row[life]?.theme ?? '학교'}
+                              onChange={(e) => setIntegratedRating(st.id, life, 'theme', e.target.value)}
+                              style={{ width: 92, minWidth: 92, padding: '4px 6px', fontSize: '0.875rem', boxSizing: 'border-box' }}
+                            >
+                              {INTEGRATED_THEMES.map((theme) => (
+                                <option key={theme} value={theme}>{theme}</option>
+                              ))}
+                            </select>
+                            <select
+                              className="input input-level"
+                              value={row[life]?.level ?? defaultLevelForStep(levelStepIntegrated)}
+                              onChange={(e) => setIntegratedRating(st.id, life, 'level', e.target.value)}
+                              style={{ width: 92, minWidth: 92, padding: '4px 6px', fontSize: '0.875rem', boxSizing: 'border-box' }}
+                            >
+                              {levelOptions.map((o) => (
+                                <option key={o.value} value={o.value}>{o.label}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <div style={{ marginTop: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <Link href="/review" className="btn btn-primary">
+              평어 생성
+            </Link>
+            <Link href={`/classes/${id}`} className="btn btn-ghost">
+              학급으로
+            </Link>
+          </div>
+        </>
       ) : (
         <>
           <div className="table-wrap ratings-table">

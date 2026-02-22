@@ -40,18 +40,26 @@ export function levelToSelectValue(level: Level, step: LevelStep): Level {
   return (level === '4' ? '4' : '2') as Level; // 2-step
 }
 
-/** 과목: 국어, 수학, 통합(바생/슬생/즐생) */
-export type SubjectCode = '국어' | '수학' | '바생' | '슬생' | '즐생';
+/** 과목: 국어, 수학, 통합(바생/슬생/즐생 한 번에), 바생/슬생/즐생 */
+export type SubjectCode = '국어' | '수학' | '통합' | '바생' | '슬생' | '즐생';
 
-/** 통합 과목 선택지 (바른생활, 슬기로운생활, 즐거운생활) */
-export const INTEGRATED_SUBJECTS: SubjectCode[] = ['바생', '슬생', '즐생'];
+/** 통합 단원 선택: 드롭다운 옵션 (학교, 사람들, 우리나라, 탐험) */
+export const INTEGRATED_THEMES = ['학교', '사람들', '우리나라', '탐험'] as const;
 
-/** 기본 과목 선택지 (국어, 수학, 통합은 UI에서 바생/슬생/즐생으로 세분) */
+/** 통합 단원 선택: 바른생활/슬기로운생활/즐거운생활 각 1개 드롭다운 (area name 형식: "학교(바른생활)") */
+export const INTEGRATED_LIVES = [
+  { key: '바른생활', label: '바른생활' },
+  { key: '슬기로운생활', label: '슬기로운생활' },
+  { key: '즐거운생활', label: '즐거운생활' },
+] as const;
+
+/** 기본 과목 선택지 (국어, 수학, 통합 → 바로 단원 선택) */
 export const MAIN_SUBJECTS: ('국어' | '수학' | '통합')[] = ['국어', '수학', '통합'];
 
 export const SUBJECT_LABELS: Record<SubjectCode, string> = {
   국어: '국어',
   수학: '수학',
+  통합: '통합',
   바생: '바른생활',
   슬생: '슬기로운생활',
   즐생: '즐거운생활',
@@ -102,4 +110,4 @@ export interface Activity {
   created_at?: string;
 }
 
-export const SUBJECTS: SubjectCode[] = ['국어', '수학', ...INTEGRATED_SUBJECTS];
+export const SUBJECTS: SubjectCode[] = ['국어', '수학', '통합', '바생', '슬생', '즐생'];

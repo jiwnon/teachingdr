@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { createClient, hasSupabaseEnv } from '@/lib/supabase/client';
 import { getReviewDataAction } from '@/lib/actions/classrooms';
 import { useAppStore } from '@/store/app-store';
 import { useGuestStore, isGuestId } from '@/store/guest-store';
-import { generateComment } from '@/lib/generator';
+import { generateComment, buildSentenceAssignment } from '@/lib/generator';
 import type { Template } from '@/lib/types';
 import type { Student } from '@/lib/types';
 import type { Area } from '@/lib/types';
@@ -94,24 +94,58 @@ export default function ReviewPage() {
     setLoading(false);
   }, [sub, sem, classroom?.id, session, status, getGuestStudents, getGuestRatings, getGuestActivities]);
 
-  const areasFiltered =
-    selectedAreaIds.length > 0
-      ? areas.filter((a) => selectedAreaIds.includes(a.id))
-      : areas;
-  const areaIds = new Set(areasFiltered.map((x) => x.id));
+  const isIntegrated = sub === '통합';
+  const areaIds = useMemo(() => {
+    if (isIntegrated) return new Set(ratings.map((r) => r.area_id));
+    const filtered =
+      selectedAreaIds.length > 0 ? areas.filter((a) => selectedAreaIds.includes(a.id)) : areas;
+    return new Set(filtered.map((x) => x.id));
+  }, [isIntegrated, ratings, selectedAreaIds, areas]);
+  const areasFiltered = areas.filter((a) => areaIds.has(a.id));
   const templatesForSubject = templates.filter((t) => areaIds.has(t.area_id));
   const ratingMap: Record<string, string> = {};
   for (const r of ratings) {
     ratingMap[`${r.student_id}-${r.area_id}`] = r.level;
   }
 
-  const getGeneratedText = (student: Student) => {
-    const areaLevels = areasFiltered.map((a) => ({
-      areaId: a.id,
-      level: (ratingMap[`${student.id}-${a.id}`] ?? '2') as '1' | '2' | '3' | '4',
+  const lifeOrder: Record<string, number> = { 바른생활: 0, 슬기로운생활: 1, 즐거운생활: 2 };
+  const areaIdToLife = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const a of areas) {
+      const match = a.name.match(/^(.+)\((.+)\)$/);
+      if (match) m.set(a.id, match[2]);
+    }
+    return m;
+  }, [areas]);
+
+  const sentenceAssignment = useMemo(() => {
+    const ids = areaIds;
+    const templatesFiltered = templates.filter((t) => ids.has(t.area_id));
+    if (students.length === 0 || templatesFiltered.length === 0) return new Map<string, Map<string, number>>();
+    const ratingsArray = ratings.map((r) => ({
+      student_id: r.student_id,
+      area_id: r.area_id,
+      level: r.level,
     }));
+    return buildSentenceAssignment(students, ratingsArray, templatesFiltered, ids);
+  }, [students, ratings, templates, areaIds]);
+
+  const getGeneratedText = (student: Student) => {
+    const areaLevels = isIntegrated
+      ? (() => {
+          const list = ratings
+            .filter((r) => r.student_id === student.id)
+            .map((r) => ({ areaId: r.area_id, level: r.level as '1' | '2' | '3' | '4' }));
+          list.sort((a, b) => (lifeOrder[areaIdToLife.get(a.areaId) ?? ''] ?? 0) - (lifeOrder[areaIdToLife.get(b.areaId) ?? ''] ?? 0));
+          return list;
+        })()
+      : areasFiltered.map((a) => ({
+          areaId: a.id,
+          level: (ratingMap[`${student.id}-${a.id}`] ?? '2') as '1' | '2' | '3' | '4',
+        }));
     return generateComment(areaLevels, templatesForSubject, {
       studentId: student.id,
+      sentenceIndexMap: sentenceAssignment.get(student.id) ?? undefined,
     });
   };
 
