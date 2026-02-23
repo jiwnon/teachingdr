@@ -74,10 +74,11 @@
 | 등급 체계 | ✅ | **매우잘함(1) / 잘함(2) / 보통(3) / 노력요함(4)**. UI에서 2/3/4단계로 축약 표시. |
 | 템플릿 시드 | ✅ | **국어·수학**: `seed-국어수학-평어.mjs` + JSON 4개. **통합**: `seed-통합-평어.mjs` + JSON 2개. |
 | 평어 생성 | ✅ | 같은 (단원, 레벨)이라도 학생마다 **다른 문장 배정** (랜덤 셔플, 중복 방지, 부족 시 순환). |
-| /review | ✅ | 국어/수학: selectedAreaIds 기준. 통합: 학생별 ratings 기준 areaLevels. GPT 재작성·수정·복사. |
+| /review | ✅ | 국어/수학: selectedAreaIds 기준. 통합: 학생별 ratings 기준 areaLevels. GPT 재작성·수정·복사. **줄바꿈 허용** 체크박스(해제 시 한 줄로 붙여서 보기·복사, 성적서 붙여넣기용). |
 | UI/디자인 | ✅ | 따뜻한 색상(살구/테라코타), 아이보리 배경, rounded corners. 모바일 반응형. PWA 아이콘. |
 | 배포 | ✅ | Cloudflare Workers (OpenNext). report-mate.org 커스텀 도메인. `npm run deploy:cf`. |
-| 엑셀 다운로드 | ❌ | 미구현 |
+| 엑셀 다운로드 | ✅ | /review에서 XLSX 다운로드. 과목·단원·이름·평어 칼럼. `xlsx` 라이브러리 사용. |
+| 피드백 게시판 | ✅ | `/feedback`. 익명 글 작성(로그인 필수), 관리자·본인 삭제. DB `feedback` 테이블. |
 
 ---
 
@@ -99,11 +100,12 @@ next-app/
 │   │       ├── level-step/page.tsx      # 국어/수학: 레벨 2/3/4단계 선택 (세션만 저장)
 │   │       └── ratings/page.tsx         # 국어/수학: 단원별 레벨. 통합: 학생별 (단원+레벨)×3 테이블.
 │   ├── api/generate-comment/route.ts    # POST: templateSentence + activities → GPT-4o-mini 재작성
+│   ├── feedback/page.tsx                # 익명 피드백 게시판 (로그인 필수, 관리자·본인 삭제)
 │   ├── students/page.tsx                # → /classes 리다이렉트
 │   ├── ratings/page.tsx                 # → /classes 리다이렉트
-│   └── review/page.tsx                  # 학생별 평어. 국어/수학: selectedAreaIds. 통합: 학생별 ratings.
+│   └── review/page.tsx                  # 학생별 평어. 국어/수학: selectedAreaIds. 통합: 학생별 ratings. 엑셀 다운로드.
 ├── src/components/
-│   ├── AppNav.tsx                       # 네비: 홈, 학급 목록, 로그인/로그아웃
+│   ├── AppNav.tsx                       # 네비: 홈, 학급 목록, 피드백, 로그인/로그아웃
 │   ├── LandingAuth.tsx                  # 랜딩: 회원가입 버튼(signIn('google')), 체험하기 링크
 │   └── SessionProvider.tsx              # next-auth SessionProvider 래퍼
 ├── src/lib/
@@ -111,6 +113,8 @@ next-app/
 │   ├── generator.ts                     # 평어 생성: buildSentenceAssignment(랜덤 배정), generateComment
 │   ├── types.ts                         # Classroom, Semester, SubjectCode('통합' 포함), Level, LevelStep, INTEGRATED_THEMES/LIVES, ...
 │   ├── actions/classrooms.ts            # Server Actions: 학급 CRUD, 학생, 등급, 활동, 리뷰 데이터
+│   ├── actions/feedback.ts             # Server Actions: 피드백 CRUD, 관리자 판별
+│   ├── xlsx-export.ts                  # XLSX 다운로드 유틸 (downloadReviewXlsx)
 │   └── supabase/client.ts, server.ts
 ├── src/store/
 │   ├── app-store.ts                     # classroom, semester, subject, selectedAreaIds, levelStep
@@ -123,7 +127,7 @@ next-app/
 ├── DEPLOY.md                            # 배포 가이드 (환경 변수, report-mate.org)
 ├── public/manifest.json                 # PWA. theme_color #E07B54. 아이콘 /icons/icon-*x*.png
 ├── public/icons/                        # 72~512px PNG 아이콘
-├── supabase/migrations/                 # 11개 마이그레이션 (classrooms_school_year, activities_area_id 포함)
+├── supabase/migrations/                 # 12개 마이그레이션 (classrooms_school_year, activities_area_id, feedback 포함)
 ├── scripts/
 │   ├── seed-국어수학-평어.mjs            # 국어·수학 1학기 areas + 평어 INSERT
 │   ├── seed-통합-평어.mjs               # 통합 1학기 areas(12개) + 평어 INSERT (subject='통합')
@@ -149,6 +153,7 @@ next-app/
 - **students**: `id`, `number`, `name`, `classroom_id`(FK, nullable).
 - **ratings**: `(student_id, area_id)` PK, `level`('1'|'2'|'3'|'4').
 - **activities**: `id`, `classroom_id`, `semester`, `subject`, `description`, **`area_id`**(FK to areas, nullable, 해당 단원), `created_at` — GPT 평어 재작성 시 참고. 등급 페이지에서 단원 드롭다운으로 선택 가능.
+- **feedback**: `id`(UUID), `user_id`(text), `content`(text), `created_at`. 익명 피드백. UI에 user_id 미노출. 관리자(`ADMIN_EMAIL`) 또는 본인만 삭제 가능.
 
 UI 등급 표기: **1=매우잘함, 2=잘함, 3=보통, 4=노력요함.**
 
@@ -162,13 +167,13 @@ UI 등급 표기: **1=매우잘함, 2=잘함, 3=보통, 4=노력요함.**
   - 같은 (area_id, level) 그룹 내 학생들에게 서로 다른 문장 인덱스 배정 (Fisher–Yates 셔플)
   - 학생 수 > 문장 수이면 순환 재사용
   - 반환: `Map<studentId, Map<"areaId:level", templateIndex>>`
-- **`generateComment(areaLevels, templates, { studentId, sentenceIndexMap })`**
-  - `sentenceIndexMap`이 있으면 배정된 인덱스로 문장 선택
-  - 없으면 기존 `pickSentence` (hash 기반 deterministic) 사용
+- **`generateCommentLines(areaLevels, templates, { studentId, sentenceIndexMap })`**
+  - 단원별 `Array<{ areaId, sentence }>` 반환. GPT 호출 시 단원별 활동 필터링에 활용.
+- **`generateComment(...)`**: `generateCommentLines()`를 호출한 뒤 `join('\n')`으로 문자열 반환 (기존 호환).
 
 ### 선택적 GPT (/api/generate-comment)
 
-- 해당 학급·학기·과목에 **activities**가 있으면 /review에서 문장별로 GPT-4o-mini 재작성
+- **단원별 활동 필터링**: 각 줄(단원)마다 `activities.area_id`가 일치하는 활동만 GPT에 전달. 해당 단원에 활동이 없으면 템플릿 문장 그대로 사용 (GPT 미호출). `area_id`가 null인 활동(단원 미지정)은 무시.
 - `.env.local`에 `OPENAI_API_KEY` 필요
 
 ### /review 페이지
@@ -187,12 +192,27 @@ UI 등급 표기: **1=매우잘함, 2=잘함, 3=보통, 4=노력요함.**
 - **seed-data 정리**: `국어-평어-문장-추가.json`, `수학-평어-문장-추가.json`, `통합-평어-문장-신규.json` 삭제. 내용은 각각 `국어-평어-문장.json`, `수학-평어-문장.json`, `통합-평어-문장.json`에 이미 반영됨.
 - **GPT 학습활동 반영**: API 프롬프트 강화(활동 구체 반영 지시). 429/API키/rate limit 한글 안내. 리뷰 페이지에서 실패 시 **실제 오류 메시지** 표시. 체험 모드에서 areas/templates 로드 완료 후에만 GPT 호출하도록 로딩 순서 수정.
 - **학습 활동 단원 연결**: 등급 페이지에서 활동 입력 시 **단원 드롭다운** 추가(선택 안 함 가능). DB `activities.area_id` 추가. 활동 목록에 `[단원명] 활동 설명` 형태로 표시. 마이그레이션: `20240222100000_activities_area_id.sql`.
+- **seed-data 국어/수학 areas**: `국어-1학년1학기-areas.json`에 **국어 종합**(order_index 8), `수학-1학년1학기-areas.json`에 **수학 종합**(order_index 5) 추가. 평어 문장 JSON에 해당 `areaName`이 없으면 해당 단원은 템플릿 0개로 시드됨(문장 추가 후 시드 재실행 시 반영).
+- **리뷰 페이지 줄바꿈 옵션**: **줄바꿈 허용** 체크박스 추가. 체크 시 줄바꿈된 상태로 보기·복사, 해제 시 세 줄을 한 줄로 붙여서 보기·복사(성적서 붙여넣기용).
+- **GPT 단원별 활동 필터링**: `generateCommentLines()` 함수 추가. /review에서 각 줄(단원)마다 `activity.area_id`가 일치하는 활동만 GPT에 전달. 해당 단원에 활동이 없으면 DB 템플릿 문장 그대로 사용(GPT 미호출). `area_id` null(단원 미지정) 활동은 무시.
+- **평어 무한로딩 수정**: templates가 없어 `baseText`가 빈 문자열이면 GPT 루프 결과도 빈 문자열 → 영원히 "평어 생성 중..." 표시되던 버그 수정. 빈 결과 시 안내 메시지 출력.
+- **DB 제약 수정**: `templates_level_check`가 `('1','2','3')`만 허용하던 것을 `('1','2','3','4')`로 수정 (Supabase SQL Editor). 시드 스크립트에도 자동 수정 시도 로직 추가.
+- **UI 문구 통일**: "레벨 단계" → "등급 단계", 단원 선택 안내 문구에 구체적 예시 추가, 등급 입력 페이지 설명 개선.
+- **모바일 반응형 전면 개선**:
+  - **통합 등급 페이지**: 5칸 테이블 → 학생별 **카드 레이아웃**으로 변경. 데스크탑은 바른/슬기/즐거운 가로 배치, 모바일은 세로 배치.
+  - **활동 입력**: 인라인 스타일 → CSS 클래스(`activity-input-row`). 모바일에서 단원 선택·텍스트 입력이 세로 배치.
+  - **통합 단원 선택**: 인라인 스타일 → CSS 클래스(`integrated-unit-select-*`). 모바일에서 드롭다운 축소.
+  - **하단 버튼**: 인라인 스타일 → `action-buttons` 클래스. `flex-wrap` 보장.
+  - **전체**: 헤더·카드·버튼·테이블·리뷰 패딩/폰트 축소, 제목 줄바꿈 방지(`word-break: keep-all`).
+- **엑셀 다운로드**: `/review` 페이지에 "엑셀 다운로드" 버튼 추가. `xlsx` 라이브러리로 XLSX 파일 생성. 칼럼: 과목·단원·이름·평어. 파일명: `{연도}년_{학년}학년{반}반_{과목}_평어.xlsx`. GPT 생성 중 비활성화. `src/lib/xlsx-export.ts` 유틸 함수.
+- **익명 피드백 게시판**: `/feedback` 페이지 신규. 로그인 사용자만 글 작성·열람. 익명(user_id는 DB에만 저장, UI 미노출). 관리자(`ADMIN_EMAIL` 환경변수) 또는 본인만 삭제 가능. DB `feedback` 테이블. Server Actions: `src/lib/actions/feedback.ts`. 마이그레이션: `20240223100000_feedback.sql`. `auth.ts`에 email 전달 추가. AppNav에 "피드백" 링크.
 
 ---
 
 ## 8. 다음에 할 수 있는 작업
 
-- [ ] 엑셀 다운로드: review 결과 xlsx 내보내기
+- [x] 엑셀 다운로드: review 결과 xlsx 내보내기
+- [x] 피드백 게시판: 익명 피드백 작성·열람·삭제
 - [ ] DB orphan 학생/ratings 정리 (Supabase SQL Editor에서 실행)
 - [ ] 2학기 통합 시드 데이터 추가 (필요 시)
 
@@ -201,7 +221,7 @@ UI 등급 표기: **1=매우잘함, 2=잘함, 3=보통, 4=노력요함.**
 ## 9. 환경·배포 요약
 
 - **로컬**: `next-app/.env.local` → `NEXTAUTH_URL=http://localhost:3000`, NextAuth 4개 값, Supabase 2개 값, OPENAI_API_KEY(선택).
-- **배포**: Cloudflare Workers. `wrangler.jsonc`에 vars(NEXTAUTH_URL, AUTH_TRUST_HOST, GOOGLE_CLIENT_ID). Secrets: NEXTAUTH_SECRET, GOOGLE_CLIENT_SECRET. `npm run deploy:cf`.
+- **배포**: Cloudflare Workers. `wrangler.jsonc`에 vars(NEXTAUTH_URL, AUTH_TRUST_HOST, GOOGLE_CLIENT_ID, ADMIN_EMAIL). Secrets: NEXTAUTH_SECRET, GOOGLE_CLIENT_SECRET. `npm run deploy:cf`.
 - **Google OAuth**: 테스트 앱이면 OAuth 동의 화면 → 테스트 사용자에 이메일 등록 필요.
 - **인증 방식**: `signIn('google', { callbackUrl: '/auth/popup-done' })` (POST 방식, CSRF 검증 후 OAuth 시작). Auth.js v5는 Web Fetch API 사용 → Cloudflare Workers 완전 호환. 서버에서 세션 조회: `auth()` (getServerSession 대신).
 

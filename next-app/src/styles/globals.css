@@ -416,6 +416,25 @@ body {
   color: var(--color-primary);
 }
 
+/* 리뷰: 툴바 (줄바꿈 옵션 + 다운로드) */
+.review-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.review-linebreak-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--color-text);
+}
+.review-linebreak-option input { cursor: pointer; }
+
 /* 리뷰 카드 (학생별) */
 .review-item {
   background: var(--color-surface);
@@ -526,12 +545,134 @@ input:focus-visible {
 }
 
 /* =============================================================================
+   하단 액션 버튼 그룹
+   ============================================================================= */
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+.action-buttons .btn + .btn {
+  margin-left: 0;
+}
+
+/* =============================================================================
+   통합 단원 선택 레이아웃
+   ============================================================================= */
+
+.integrated-unit-select-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.integrated-unit-select-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.integrated-unit-select-label {
+  min-width: 90px;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.integrated-unit-select-dropdown {
+  padding: 8px 12px;
+  min-width: 120px;
+}
+
+/* =============================================================================
+   활동 입력 레이아웃
+   ============================================================================= */
+
+.activity-input-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.activity-select {
+  min-width: 140px;
+  flex: 0 1 auto;
+}
+
+.activity-text {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+
+/* =============================================================================
+   통합 등급 카드 레이아웃
+   ============================================================================= */
+
+.integrated-ratings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.integrated-student-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+}
+
+.integrated-student-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  margin-bottom: 10px;
+  color: var(--color-text);
+}
+
+.integrated-lives-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.integrated-life-cell {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.integrated-life-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin-bottom: 4px;
+}
+
+.integrated-selects {
+  display: flex;
+  gap: 4px;
+}
+
+.integrated-selects .input-level {
+  flex: 1 1 0;
+  min-width: 0;
+  width: auto;
+  padding: 6px 4px;
+  font-size: 0.85rem;
+}
+
+/* =============================================================================
    모바일 반응형
    ============================================================================= */
 
 @media (max-width: 640px) {
   .app-header {
-    padding: 0 12px;
+    padding: 0 10px;
   }
 
   .app-header-inner {
@@ -543,26 +684,31 @@ input:focus-visible {
   }
 
   .app-nav a {
-    padding: 6px 8px;
-    font-size: 0.8rem;
+    padding: 5px 7px;
+    font-size: 0.78rem;
   }
 
   .app-nav .app-nav-btn {
-    padding: 6px 8px;
-    font-size: 0.8rem;
+    padding: 5px 7px;
+    font-size: 0.78rem;
   }
 
   .app-main {
-    padding: 16px 12px;
+    padding: 14px 10px;
   }
 
   .card {
-    padding: 16px;
+    padding: 14px;
     border-radius: var(--radius-sm);
   }
 
   .card h1 {
-    font-size: 1.15rem;
+    font-size: 1.05rem;
+    word-break: keep-all;
+  }
+
+  .card .sub {
+    font-size: 0.82rem;
   }
 
   .landing-auth {
@@ -584,12 +730,213 @@ input:focus-visible {
     font-size: 0.9rem;
   }
 
-  .review-item {
-    padding: 14px;
+  /* 버튼 */
+  .btn {
+    padding: 8px 12px;
+    font-size: 0.82rem;
+    min-height: 40px;
   }
 
-  .btn {
-    padding: 8px 14px;
+  .btn + .btn {
+    margin-left: 6px;
+  }
+
+  /* 테이블 공통 */
+  .table-wrap th,
+  .table-wrap td {
+    padding: 8px 6px;
+    font-size: 0.82rem;
+  }
+
+  .ratings-table th:nth-child(1) { width: 44px; }
+  .ratings-table th:nth-child(2) { min-width: 60px; }
+
+  .ratings-table td .input-level {
+    min-width: 70px;
+    padding: 6px 4px;
+    font-size: 0.82rem;
+  }
+
+  /* 통합 등급 카드: 모바일에서 세로 배치 */
+  .integrated-lives-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .integrated-life-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .integrated-life-label {
+    min-width: 72px;
+    margin-bottom: 0;
+    font-size: 0.78rem;
+  }
+
+  .integrated-selects {
+    flex: 1;
+    gap: 4px;
+  }
+
+  .integrated-selects .input-level {
+    padding: 6px 2px;
+    font-size: 0.8rem;
+  }
+
+  .integrated-student-card {
+    padding: 12px;
+  }
+
+  .integrated-student-name {
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+  }
+
+  /* 활동 입력 */
+  .activities-section .input {
+    font-size: 0.82rem;
+  }
+
+  /* 리뷰 */
+  .review-item {
+    padding: 12px;
+  }
+
+  .review-item textarea {
+    min-height: 100px;
+    padding: 10px;
+    font-size: 0.82rem;
+  }
+
+  .review-linebreak-option {
+    font-size: 0.82rem;
+  }
+
+  /* 입력 */
+  .input {
+    padding: 8px 10px;
     font-size: 0.85rem;
   }
+
+  /* 단원 선택 체크박스 */
+  .units-section label {
+    font-size: 0.9rem;
+  }
+
+  /* 통합 단원 선택 */
+  .integrated-unit-select-label {
+    min-width: 72px;
+    font-size: 0.82rem;
+  }
+
+  .integrated-unit-select-dropdown {
+    padding: 7px 10px;
+    min-width: 100px;
+    font-size: 0.82rem;
+  }
+
+  /* 활동 입력 */
+  .activity-select {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .activity-text {
+    flex-basis: 100%;
+  }
+
+  /* 등급 단계 버튼 */
+  .section-title {
+    font-size: 0.92rem;
+  }
+
+  .feedback-form textarea {
+    font-size: 0.85rem;
+  }
+
+  .feedback-content {
+    font-size: 0.85rem;
+  }
+}
+
+/* =============================================================================
+   피드백 게시판
+   ============================================================================= */
+
+.feedback-form {
+  margin-bottom: 28px;
+}
+
+.feedback-form textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  font-family: inherit;
+  resize: vertical;
+  background: var(--color-surface);
+}
+
+.feedback-form textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-light);
+}
+
+.feedback-form-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.feedback-char-count {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.feedback-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.feedback-item {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  box-shadow: var(--shadow);
+}
+
+.feedback-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.feedback-date {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.feedback-delete-btn {
+  font-size: 0.78rem;
+  padding: 2px 8px;
+  color: var(--color-error);
+}
+
+.feedback-content {
+  font-size: 0.92rem;
+  line-height: 1.7;
+  color: var(--color-text);
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
 }

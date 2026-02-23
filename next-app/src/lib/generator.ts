@@ -92,13 +92,17 @@ export type GenerateCommentOptions = {
   sentenceIndexMap?: Map<string, number>;
 };
 
-export function generateComment(
+/**
+ * 단원별로 { areaId, sentence } 배열을 반환.
+ * GPT 호출 시 어느 단원의 문장인지 알 수 있어 단원별 활동 필터링이 가능.
+ */
+export function generateCommentLines(
   areaLevels: Array<{ areaId: string; level: string }>,
   templates: Template[],
   options: GenerateCommentOptions
-): string {
+): Array<{ areaId: string; sentence: string }> {
   const { studentId, regenerateCount = 0, sentenceIndexMap } = options;
-  const lines: string[] = [];
+  const result: Array<{ areaId: string; sentence: string }> = [];
   for (const { areaId, level } of areaLevels) {
     const filtered = templates.filter(
       (t) => t.area_id === areaId && t.level === level
@@ -119,7 +123,17 @@ export function generateComment(
         regenerateCount
       );
     }
-    if (sentence) lines.push(sentence);
+    if (sentence) result.push({ areaId, sentence });
   }
-  return lines.join('\n');
+  return result;
+}
+
+export function generateComment(
+  areaLevels: Array<{ areaId: string; level: string }>,
+  templates: Template[],
+  options: GenerateCommentOptions
+): string {
+  return generateCommentLines(areaLevels, templates, options)
+    .map((l) => l.sentence)
+    .join('\n');
 }

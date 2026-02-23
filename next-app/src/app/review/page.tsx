@@ -7,7 +7,8 @@ import { createClient, hasSupabaseEnv } from '@/lib/supabase/client';
 import { getReviewDataAction } from '@/lib/actions/classrooms';
 import { useAppStore } from '@/store/app-store';
 import { useGuestStore, isGuestId } from '@/store/guest-store';
-import { generateComment, buildSentenceAssignment } from '@/lib/generator';
+import { generateComment, generateCommentLines, buildSentenceAssignment } from '@/lib/generator';
+import { downloadReviewXlsx } from '@/lib/xlsx-export';
 import type { Template } from '@/lib/types';
 import type { Student } from '@/lib/types';
 import type { Area } from '@/lib/types';
@@ -35,6 +36,7 @@ export default function ReviewPage() {
   const [error, setError] = useState<string | null>(null);
   const [gptTexts, setGptTexts] = useState<Record<string, string>>({});
   const [gptError, setGptError] = useState<string | null>(null);
+  const [allowLineBreak, setAllowLineBreak] = useState(true);
   const gptTriggeredRef = useRef(false);
 
   useEffect(() => {
@@ -133,31 +135,44 @@ export default function ReviewPage() {
     return buildSentenceAssignment(students, ratingsArray, templatesFiltered, ids);
   }, [students, ratings, templates, areaIds]);
 
+  const getAreaLevels = (student: Student) => {
+    if (isIntegrated) {
+      const list = ratings
+        .filter((r) => r.student_id === student.id)
+        .map((r) => ({ areaId: r.area_id, level: r.level as '1' | '2' | '3' | '4' }));
+      list.sort((a, b) => (lifeOrder[areaIdToLife.get(a.areaId) ?? ''] ?? 0) - (lifeOrder[areaIdToLife.get(b.areaId) ?? ''] ?? 0));
+      return list;
+    }
+    return areasFiltered.map((a) => ({
+      areaId: a.id,
+      level: (ratingMap[`${student.id}-${a.id}`] ?? '2') as '1' | '2' | '3' | '4',
+    }));
+  };
+
   const getGeneratedText = (student: Student) => {
-    const areaLevels = isIntegrated
-      ? (() => {
-          const list = ratings
-            .filter((r) => r.student_id === student.id)
-            .map((r) => ({ areaId: r.area_id, level: r.level as '1' | '2' | '3' | '4' }));
-          list.sort((a, b) => (lifeOrder[areaIdToLife.get(a.areaId) ?? ''] ?? 0) - (lifeOrder[areaIdToLife.get(b.areaId) ?? ''] ?? 0));
-          return list;
-        })()
-      : areasFiltered.map((a) => ({
-          areaId: a.id,
-          level: (ratingMap[`${student.id}-${a.id}`] ?? '2') as '1' | '2' | '3' | '4',
-        }));
-    return generateComment(areaLevels, templatesForSubject, {
+    return generateComment(getAreaLevels(student), templatesForSubject, {
       studentId: student.id,
       sentenceIndexMap: sentenceAssignment.get(student.id) ?? undefined,
     });
   };
 
-  const activityDescriptions = activities.map((a) => a.description).filter(Boolean) as string[];
+  const hasAnyActivity = activities.length > 0;
 
   useEffect(() => {
-    if (loading || activityDescriptions.length === 0 || students.length === 0 || gptTriggeredRef.current) return;
+    if (loading || !hasAnyActivity || students.length === 0 || gptTriggeredRef.current) return;
     gptTriggeredRef.current = true;
     setGptError(null);
+
+    const activitiesByAreaId = new Map<string, string[]>();
+    for (const a of activities) {
+      if (!a.area_id || !a.description) continue;
+      if (!activitiesByAreaId.has(a.area_id)) activitiesByAreaId.set(a.area_id, []);
+      activitiesByAreaId.get(a.area_id)!.push(a.description);
+    }
+
+    if (activitiesByAreaId.size === 0) {
+      return;
+    }
 
     const run = async () => {
       for (const student of students) {
@@ -166,31 +181,42 @@ export default function ReviewPage() {
       let hadError = false;
       let firstErrorMessage: string | null = null;
       for (const student of students) {
-        const baseText = getGeneratedText(student);
-        const lines = baseText.split('\n').filter(Boolean);
+        const commentLines = generateCommentLines(getAreaLevels(student), templatesForSubject, {
+          studentId: student.id,
+          sentenceIndexMap: sentenceAssignment.get(student.id) ?? undefined,
+        });
+        if (commentLines.length === 0) {
+          setGptTexts((prev) => ({ ...prev, [student.id]: '(등급에 해당하는 평어 문장이 없습니다. 단원·등급·시드 데이터를 확인하세요.)' }));
+          continue;
+        }
         const results: string[] = [];
-        for (const line of lines) {
+        for (const line of commentLines) {
+          const areaActivities = activitiesByAreaId.get(line.areaId);
+          if (!areaActivities || areaActivities.length === 0) {
+            results.push(line.sentence);
+            continue;
+          }
           try {
             const res = await fetch('/api/generate-comment', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                templateSentence: line,
-                activities: activityDescriptions,
+                templateSentence: line.sentence,
+                activities: areaActivities,
               }),
             });
             const data = await res.json().catch(() => ({}));
             if (!res.ok || data.error) {
               hadError = true;
               if (data?.error && !firstErrorMessage) firstErrorMessage = data.error;
-              results.push(line);
+              results.push(line.sentence);
             } else {
-              results.push(data.sentence ?? line);
+              results.push(data.sentence ?? line.sentence);
             }
           } catch (e) {
             hadError = true;
             if (!firstErrorMessage) firstErrorMessage = e instanceof Error ? e.message : '네트워크 오류';
-            results.push(line);
+            results.push(line.sentence);
           }
         }
         setGptTexts((prev) => ({ ...prev, [student.id]: results.join('\n') }));
@@ -203,22 +229,72 @@ export default function ReviewPage() {
       }
     };
     void run();
-  }, [loading, activityDescriptions.length, students.length, activityDescriptions.join('\n')]);
+  }, [loading, hasAnyActivity, students.length, activities]);
 
-  const getDisplayText = (student: Student) => {
+  const getRawText = (student: Student) => {
     if (editedTexts[student.id] != null) return editedTexts[student.id];
-    if (activities.length > 0 && student.id in gptTexts) {
+    if (student.id in gptTexts) {
       const t = gptTexts[student.id];
       return t === '' ? '평어 생성 중...' : t;
     }
     return getGeneratedText(student);
   };
 
+  const getDisplayText = (student: Student) => {
+    const raw = getRawText(student);
+    if (raw === '평어 생성 중...') return raw;
+    if (editingId === student.id) return raw;
+    return allowLineBreak ? raw : raw.replace(/\n/g, ' ');
+  };
+
+  const getTextForCopy = (student: Student) => {
+    const raw = getRawText(student);
+    if (raw === '평어 생성 중...') return '';
+    return allowLineBreak ? raw : raw.replace(/\n/g, ' ');
+  };
+
   const setDisplayText = (studentId: string, text: string) => {
     setEditedTexts((prev) => ({ ...prev, [studentId]: text }));
   };
 
-  const isGptLoading = activities.length > 0 && students.some((st) => gptTexts[st.id] === '');
+  const isGptLoading = students.some((st) => st.id in gptTexts && gptTexts[st.id] === '');
+
+  const handleDownloadXlsx = () => {
+    const rows = students.map((st) => {
+      const raw = getRawText(st);
+      const text = raw === '평어 생성 중...' ? '' : raw;
+
+      let areaNames: string;
+      if (isIntegrated) {
+        const studentAreaIds = ratings
+          .filter((r) => r.student_id === st.id)
+          .map((r) => r.area_id);
+        areaNames = areas
+          .filter((a) => studentAreaIds.includes(a.id))
+          .sort((a, b) => (lifeOrder[areaIdToLife.get(a.id) ?? ''] ?? 0) - (lifeOrder[areaIdToLife.get(b.id) ?? ''] ?? 0))
+          .map((a) => a.name)
+          .join(', ');
+      } else {
+        areaNames = areasFiltered.map((a) => a.name).join(', ');
+      }
+
+      return {
+        과목: sub,
+        단원: areaNames,
+        이름: `${st.number}. ${st.name}`,
+        평어: text,
+      };
+    });
+
+    const classInfo = classroom
+      ? `${classroom.school_year ?? ''}년_${classroom.grade}학년${classroom.class_number}반`
+      : '';
+    const filename = classInfo
+      ? `${classInfo}_${sub}_평어.xlsx`
+      : `${sub}_평어.xlsx`;
+
+    downloadReviewXlsx(rows, filename);
+  };
 
   if (loading) return <div className="loading">로딩 중...</div>;
   if (error) return <div className="alert alert-error">{error}</div>;
@@ -227,9 +303,9 @@ export default function ReviewPage() {
     <div className="card">
       <h1>3단계: 평어 생성</h1>
       <p className="sub">생성된 평어를 확인·수정하고 복사할 수 있습니다.</p>
-      {activities.length > 0 && (
+      {activities.some((a) => a.area_id) && (
         <p className="sub" style={{ marginBottom: 12 }}>
-          이번 학기 학습 활동이 반영된 문장으로 GPT가 재작성합니다.
+          단원에 연결된 학습 활동이 있는 줄만 GPT가 재작성합니다. (단원 미지정 활동은 무시)
         </p>
       )}
       {isGptLoading && (
@@ -242,6 +318,24 @@ export default function ReviewPage() {
           {gptError}
         </div>
       )}
+      <div className="review-toolbar">
+        <label className="review-linebreak-option">
+          <input
+            type="checkbox"
+            checked={allowLineBreak}
+            onChange={(e) => setAllowLineBreak(e.target.checked)}
+          />
+          <span>줄바꿈 허용 (해제 시 한 줄로 붙여서 보기·복사 — 성적서 붙여넣기용)</span>
+        </label>
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={handleDownloadXlsx}
+          disabled={isGptLoading || students.length === 0}
+        >
+          엑셀 다운로드
+        </button>
+      </div>
       {students.length === 0 ? (
         <div className="alert alert-error">학생이 없습니다. 학생 명단과 등급을 먼저 입력하세요.</div>
       ) : (
@@ -263,10 +357,10 @@ export default function ReviewPage() {
                   type="button"
                   className="btn btn-primary"
                   onClick={() => {
-                    const t = getDisplayText(st);
-                    if (t && t !== '평어 생성 중...') void navigator.clipboard.writeText(t);
+                    const t = getTextForCopy(st);
+                    if (t) void navigator.clipboard.writeText(t);
                   }}
-                  disabled={getDisplayText(st) === '평어 생성 중...'}
+                  disabled={getRawText(st) === '평어 생성 중...'}
                 >
                   복사
                 </button>

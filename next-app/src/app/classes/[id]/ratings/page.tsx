@@ -259,17 +259,17 @@ function ClassRatingsContent() {
 
   return (
     <div className="card">
-      <h1>{classroomDisplayName} · {semester}학기 · {SUBJECT_LABELS[subject]} 등급</h1>
+      <h1>{classroomDisplayName} · {semester}학기 · {SUBJECT_LABELS[subject]} 등급 입력</h1>
       <p className="sub">
         {isIntegrated
-          ? '학생마다 바른생활·슬기로운생활·즐거운생활 단원과 레벨을 선택하세요. (변경 시 자동 저장)'
-          : `학생별·선택 단원별로 ${levelOptions.map((o) => o.label).join(' / ')} 선택 (변경 시 자동 저장)`}
+          ? '학생마다 바른생활·슬기로운생활·즐거운생활 단원과 등급(매우잘함/잘함/보통/노력요함)을 선택하세요. (변경 시 자동 저장)'
+          : `아래 표: 열은 단원(한글 놀이, 글자를 만들어요 등), 각 셀에서 등급 ${levelOptions.map((o) => o.label).join(' / ')} 선택 (변경 시 자동 저장)`}
         {isGuestId(id) && <span style={{ color: 'var(--color-text-muted)' }}> (체험: 저장되지 않음)</span>}
       </p>
 
       {isIntegrated && (
         <section style={{ marginBottom: 20 }}>
-          <h2 className="section-title">레벨 단계</h2>
+          <h2 className="section-title">등급 단계</h2>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {([2, 3, 4] as const).map((step) => (
               <button
@@ -290,12 +290,11 @@ function ClassRatingsContent() {
         <p className="sub" style={{ marginBottom: 10 }}>
           단원을 고른 뒤, 해당 단원에서 한 활동을 적어 두면 평어 생성 시 GPT가 반영합니다.
         </p>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-start', marginBottom: 12 }}>
+        <div className="activity-input-row">
           <select
-            className="input"
+            className="input activity-select"
             value={activityAreaId}
             onChange={(e) => setActivityAreaId(e.target.value)}
-            style={{ minWidth: 160 }}
             title="단원 선택"
           >
             <option value="">단원 선택 (선택 안 함)</option>
@@ -305,12 +304,11 @@ function ClassRatingsContent() {
           </select>
           <input
             type="text"
-            className="input"
+            className="input activity-text"
             placeholder="활동 설명 입력"
             value={activityInput}
             onChange={(e) => setActivityInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addActivity()}
-            style={{ flex: '1 1 200px', minWidth: 160 }}
           />
           <button
             type="button"
@@ -352,61 +350,48 @@ function ClassRatingsContent() {
         </div>
       ) : isIntegrated ? (
         <>
-          <div className="table-wrap ratings-table">
-            <table style={{ tableLayout: 'fixed', width: '100%' }}>
-              <thead>
-                <tr>
-                  <th style={{ width: 48 }}>번호</th>
-                  <th style={{ width: 'auto' }}>이름</th>
-                  {INTEGRATED_LIVES.map(({ key: life, label }) => (
-                    <th key={life} style={{ textAlign: 'center', minWidth: 200 }}>{label}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {students.map((st) => {
-                  const row = integratedRatings[st.id] ?? {
-                    바른생활: { theme: '학교', level: defaultLevelForStep(levelStepIntegrated) },
-                    슬기로운생활: { theme: '학교', level: defaultLevelForStep(levelStepIntegrated) },
-                    즐거운생활: { theme: '학교', level: defaultLevelForStep(levelStepIntegrated) },
-                  };
-                  return (
-                    <tr key={st.id}>
-                      <td>{st.number}</td>
-                      <td>{st.name}</td>
-                      {INTEGRATED_LIVES.map(({ key: life }) => (
-                        <td key={life}>
-                          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'nowrap', minWidth: 0 }}>
-                            <select
-                              className="input input-level"
-                              value={row[life]?.theme ?? '학교'}
-                              onChange={(e) => setIntegratedRating(st.id, life, 'theme', e.target.value)}
-                              style={{ width: 92, minWidth: 92, padding: '4px 6px', fontSize: '0.875rem', boxSizing: 'border-box' }}
-                            >
-                              {INTEGRATED_THEMES.map((theme) => (
-                                <option key={theme} value={theme}>{theme}</option>
-                              ))}
-                            </select>
-                            <select
-                              className="input input-level"
-                              value={row[life]?.level ?? defaultLevelForStep(levelStepIntegrated)}
-                              onChange={(e) => setIntegratedRating(st.id, life, 'level', e.target.value)}
-                              style={{ width: 92, minWidth: 92, padding: '4px 6px', fontSize: '0.875rem', boxSizing: 'border-box' }}
-                            >
-                              {levelOptions.map((o) => (
-                                <option key={o.value} value={o.value}>{o.label}</option>
-                              ))}
-                            </select>
-                          </div>
-                        </td>
-                      ))}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          <div className="integrated-ratings-list">
+            {students.map((st) => {
+              const row = integratedRatings[st.id] ?? {
+                바른생활: { theme: '학교', level: defaultLevelForStep(levelStepIntegrated) },
+                슬기로운생활: { theme: '학교', level: defaultLevelForStep(levelStepIntegrated) },
+                즐거운생활: { theme: '학교', level: defaultLevelForStep(levelStepIntegrated) },
+              };
+              return (
+                <div key={st.id} className="integrated-student-card">
+                  <div className="integrated-student-name">{st.number}. {st.name}</div>
+                  <div className="integrated-lives-row">
+                    {INTEGRATED_LIVES.map(({ key: life, label }) => (
+                      <div key={life} className="integrated-life-cell">
+                        <span className="integrated-life-label">{label}</span>
+                        <div className="integrated-selects">
+                          <select
+                            className="input input-level"
+                            value={row[life]?.theme ?? '학교'}
+                            onChange={(e) => setIntegratedRating(st.id, life, 'theme', e.target.value)}
+                          >
+                            {INTEGRATED_THEMES.map((theme) => (
+                              <option key={theme} value={theme}>{theme}</option>
+                            ))}
+                          </select>
+                          <select
+                            className="input input-level"
+                            value={row[life]?.level ?? defaultLevelForStep(levelStepIntegrated)}
+                            onChange={(e) => setIntegratedRating(st.id, life, 'level', e.target.value)}
+                          >
+                            {levelOptions.map((o) => (
+                              <option key={o.value} value={o.value}>{o.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
-          <div style={{ marginTop: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <div className="action-buttons">
             <Link href="/review" className="btn btn-primary">
               평어 생성
             </Link>
@@ -457,12 +442,12 @@ function ClassRatingsContent() {
               </tbody>
             </table>
           </div>
-          <div style={{ marginTop: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <div className="action-buttons">
             <Link href="/review" className="btn btn-primary">
               평어 생성
             </Link>
             <Link href={`/classes/${id}/level-step?sem=${semester}&subject=${subject}`} className="btn btn-ghost">
-              레벨 단계 변경
+              등급 단계 변경
             </Link>
             <Link href={`/classes/${id}/units?sem=${semester}&subject=${subject}`} className="btn btn-ghost">
               단원 다시 선택

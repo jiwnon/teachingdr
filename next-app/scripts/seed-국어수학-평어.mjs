@@ -42,6 +42,30 @@ function loadJson(name) {
 }
 
 async function main() {
+  // 0) templates/ratings level 제약을 4단계('1','2','3','4')로 보장
+  const fixConstraintSQL = `
+    DO $$ DECLARE _con text; BEGIN
+      SELECT conname INTO _con FROM pg_constraint
+      WHERE conrelid = 'public.templates'::regclass AND contype = 'c'
+        AND pg_get_constraintdef(oid) LIKE '%level%';
+      IF _con IS NOT NULL THEN EXECUTE 'ALTER TABLE public.templates DROP CONSTRAINT ' || quote_ident(_con); END IF;
+    END $$;
+    ALTER TABLE public.templates ADD CONSTRAINT templates_level_check CHECK (level IN ('1','2','3','4'));
+    DO $$ DECLARE _con text; BEGIN
+      SELECT conname INTO _con FROM pg_constraint
+      WHERE conrelid = 'public.ratings'::regclass AND contype = 'c'
+        AND pg_get_constraintdef(oid) LIKE '%level%';
+      IF _con IS NOT NULL THEN EXECUTE 'ALTER TABLE public.ratings DROP CONSTRAINT ' || quote_ident(_con); END IF;
+    END $$;
+    ALTER TABLE public.ratings ADD CONSTRAINT ratings_level_check CHECK (level IN ('1','2','3','4'));
+  `;
+  const { error: rpcErr } = await supabase.rpc('exec_sql', { sql: fixConstraintSQL }).maybeSingle();
+  if (rpcErr) {
+    console.warn('level 제약 자동 수정 실패 (수동 SQL 필요할 수 있음):', rpcErr.message);
+  } else {
+    console.log('level 제약: 4단계 보장 완료');
+  }
+
   // 1) 국어·수학 1학기 areas 삭제 (DB FK on delete cascade → templates, ratings 함께 삭제)
   const { error: deleteErr } = await supabase
     .from('areas')
@@ -95,10 +119,11 @@ async function main() {
   for (const { file, subject } of templateFiles) {
     const arr = loadJson(file);
     for (const t of arr) {
-      if (!t.areaName || !['1', '2', '3', '4'].includes(t.level) || !t.sentence?.trim()) continue;
+      const level = String(t.level ?? '');
+      if (!t.areaName || !['1', '2', '3', '4'].includes(level) || !t.sentence?.trim()) continue;
       const areaId = nameToId.get(`${subject}:${t.areaName}`);
       if (!areaId) continue;
-      toInsert.push({ area_id: areaId, level: t.level, sentence: t.sentence.trim() });
+      toInsert.push({ area_id: areaId, level, sentence: t.sentence.trim() });
     }
     console.log('평어 문장:', file, arr.length, '건 로드');
   }

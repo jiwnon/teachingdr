@@ -115,3 +115,10 @@ export interface Activity {
 }
 
 export const SUBJECTS: SubjectCode[] = ['국어', '수학', '통합', '바생', '슬생', '즐생'];
+
+export interface Feedback {
+  id: string;
+  content: string;
+  created_at: string;
+  is_mine: boolean;
+}

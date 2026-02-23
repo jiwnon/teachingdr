@@ -157,20 +157,19 @@ function UnitsContent() {
     <div className="card">
       <h1>{classroomDisplayName} · {semester}학기 · {SUBJECT_LABELS[subject]} 단원 선택</h1>
       <p className="sub">
-        {isIntegrated ? '바른생활·슬기로운생활·즐거운생활 각각 단원을 하나씩 선택하세요.' : '평가할 단원을 선택하세요. (최소 1개)'}
+        {isIntegrated ? '바른생활·슬기로운생활·즐거운생활 각각 단원을 하나씩 선택하세요.' : '평가할 단원(한글 놀이, 글자를 만들어요 등)을 선택하세요. (최소 1개) 선택한 단원마다 다음 단계에서 등급(매우잘함/잘함/보통/노력요함)을 입력합니다.'}
       </p>
 
       <section className="units-section" style={{ marginBottom: 24 }}>
         {isIntegrated ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div className="integrated-unit-select-list">
             {INTEGRATED_LIVES.map(({ key: life, label }) => (
-              <div key={life} style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                <span style={{ minWidth: 100 }}>{label}</span>
+              <div key={life} className="integrated-unit-select-row">
+                <span className="integrated-unit-select-label">{label}</span>
                 <select
                   value={selectedByLife[life] ?? ''}
                   onChange={(e) => setSelectedByLife((prev) => ({ ...prev, [life]: e.target.value }))}
-                  className="btn btn-secondary"
-                  style={{ padding: '8px 12px', minWidth: 140 }}
+                  className="btn btn-secondary integrated-unit-select-dropdown"
                 >
                   <option value="">선택하세요</option>
                   {INTEGRATED_THEMES.map((theme) => (
@@ -211,7 +210,7 @@ function UnitsContent() {
           onClick={goNext}
           disabled={!canGoNext}
         >
-          다음: 레벨 단계 선택
+          다음: 등급 단계 선택
         </button>
         <Link href={`/classes/${id}`} className="btn btn-ghost">
           학급으로 돌아가기

@@ -93,8 +93,8 @@ function LevelStepContent() {
 
   return (
     <div className="card">
-      <h1>{classroomDisplayName} · {semester}학기 · {SUBJECT_LABELS[subject]} 레벨 단계</h1>
-      <p className="sub">등급을 몇 단계로 나눌지 선택하세요.</p>
+      <h1>{classroomDisplayName} · {semester}학기 · {SUBJECT_LABELS[subject]} 등급 단계</h1>
+      <p className="sub">등급(매우잘함 / 잘함 / 보통 / 노력요함)을 몇 단계로 나눌지 선택하세요.</p>
 
       <section className="level-step-section" style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

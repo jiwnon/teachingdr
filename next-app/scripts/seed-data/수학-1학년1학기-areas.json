@@ -1,1 +1,7 @@
-[{"subject":"수학","name":"9까지의 수","order_index":1,"semester":1},{"subject":"수학","name":"여러 가지 모양","order_index":2,"semester":1},{"subject":"수학","name":"덧셈과 뺄셈","order_index":3,"semester":1},{"subject":"수학","name":"비교하기","order_index":4,"semester":1}]
+[
+  { "subject": "수학", "name": "9까지의 수", "order_index": 1, "semester": 1 },
+  { "subject": "수학", "name": "여러 가지 모양", "order_index": 2, "semester": 1 },
+  { "subject": "수학", "name": "덧셈과 뺄셈", "order_index": 3, "semester": 1 },
+  { "subject": "수학", "name": "비교하기", "order_index": 4, "semester": 1 },
+  { "subject": "수학", "name": "수학 종합", "order_index": 5, "semester": 1 }
+]

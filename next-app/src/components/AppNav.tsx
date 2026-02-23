@@ -7,6 +7,7 @@ import { signIn, signOut, useSession } from 'next-auth/react';
 const links = [
   { href: '/', label: '홈' },
   { href: '/classes', label: '학급 목록' },
+  { href: '/feedback', label: '피드백' },
 ];
 
 export default function AppNav() {

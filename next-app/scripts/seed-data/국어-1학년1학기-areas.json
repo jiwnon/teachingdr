@@ -1,1 +1,11 @@
-[{"subject":"국어","name":"한글 놀이","order_index":0,"semester":1},{"subject":"국어","name":"글자를 만들어요","order_index":1,"semester":1},{"subject":"국어","name":"받침이 있는 글자를 읽어요","order_index":2,"semester":1},{"subject":"국어","name":"낱말과 친해져요","order_index":3,"semester":1},{"subject":"국어","name":"여러 가지 낱말을 익혀요","order_index":4,"semester":1},{"subject":"국어","name":"반갑게 인사해요","order_index":5,"semester":1},{"subject":"국어","name":"또박또박 읽어요","order_index":6,"semester":1},{"subject":"국어","name":"알맞은 낱말을 찾아요","order_index":7,"semester":1}]
+[
+  { "subject": "국어", "name": "한글 놀이", "order_index": 0, "semester": 1 },
+  { "subject": "국어", "name": "글자를 만들어요", "order_index": 1, "semester": 1 },
+  { "subject": "국어", "name": "받침이 있는 글자를 읽어요", "order_index": 2, "semester": 1 },
+  { "subject": "국어", "name": "낱말과 친해져요", "order_index": 3, "semester": 1 },
+  { "subject": "국어", "name": "여러 가지 낱말을 익혀요", "order_index": 4, "semester": 1 },
+  { "subject": "국어", "name": "반갑게 인사해요", "order_index": 5, "semester": 1 },
+  { "subject": "국어", "name": "또박또박 읽어요", "order_index": 6, "semester": 1 },
+  { "subject": "국어", "name": "알맞은 낱말을 찾아요", "order_index": 7, "semester": 1 },
+  { "subject": "국어", "name": "국어 종합", "order_index": 8, "semester": 1 }
+]
