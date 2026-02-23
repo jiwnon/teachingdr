@@ -95,9 +95,11 @@ export default function ClassStudentsPage() {
   if (error) return <div className="alert alert-error">{error}</div>;
   if (!classroom) return <div className="alert alert-error">학급을 찾을 수 없습니다.</div>;
 
+  const classroomDisplayName = classroom.school_year ? `${classroom.school_year}년 ${classroom.name}` : classroom.name;
+
   return (
     <div className="card">
-      <h1>{classroom.name} 학생 명단</h1>
+      <h1>{classroomDisplayName} 학생 명단</h1>
       <p className="sub">
         번호와 이름을 입력한 뒤 저장하세요.
         {isGuestId(id) && <span style={{ color: 'var(--color-text-muted)' }}> (체험: 저장되지 않음)</span>}
@@ -141,7 +143,7 @@ export default function ClassStudentsPage() {
           {saving ? '저장 중...' : '저장'}
         </button>
         <Link href={`/classes/${id}`} className="btn btn-ghost">
-          학급으로 돌아가기
+          과목·단원 선택하기
         </Link>
       </div>
     </div>

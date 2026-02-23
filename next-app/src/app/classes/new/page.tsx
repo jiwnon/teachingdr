@@ -12,12 +12,15 @@ export default function NewClassPage() {
   const { data: session, status } = useSession();
   const addClassroom = useGuestStore((s) => s.addClassroom);
 
+  const currentYear = new Date().getFullYear();
+  const [schoolYear, setSchoolYear] = useState<number>(currentYear);
   const [grade, setGrade] = useState<number>(1);
   const [classNumber, setClassNumber] = useState<number>(1);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const name = `${grade}학년 ${classNumber}반`;
+  const displayName = schoolYear ? `${schoolYear}년 ${name}` : name;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,19 +28,19 @@ export default function NewClassPage() {
     setError(null);
 
     if (session?.user) {
-      const result = await createClassroomAction(grade, classNumber, name);
+      const result = await createClassroomAction(grade, classNumber, name, schoolYear);
       if ('error' in result) {
         setError(result.error);
         setSaving(false);
         return;
       }
-      router.push(`/classes/${result.id}`);
+      router.push(`/classes/${result.id}/students`);
       return;
     }
 
-    const classroom = addClassroom({ grade, class_number: classNumber, name });
+    const classroom = addClassroom({ grade, class_number: classNumber, name, school_year: schoolYear });
     setSaving(false);
-    router.push(`/classes/${classroom.id}`);
+    router.push(`/classes/${classroom.id}/students`);
   };
 
   if (status === 'loading') return <div className="loading">로딩 중...</div>;
@@ -46,7 +49,7 @@ export default function NewClassPage() {
     <div className="card">
       <h1>학급 등록</h1>
       <p className="sub">
-        학년과 반을 선택하면 학급 이름이 자동으로 만들어집니다. (예: 1학년 1반)
+        연도·학년·반을 선택하면 학급 이름이 자동으로 만들어집니다. (예: 2025년 1학년 1반)
         {!session && (
           <span style={{ display: 'block', marginTop: 4, color: 'var(--color-text-muted)' }}>
             체험 모드: 저장되지 않습니다.
@@ -54,6 +57,21 @@ export default function NewClassPage() {
         )}
       </p>
       <form onSubmit={handleSubmit}>
+        <div className="form-row">
+          <label htmlFor="schoolYear">연도</label>
+          <select
+            id="schoolYear"
+            className="input"
+            value={schoolYear}
+            onChange={(e) => setSchoolYear(Number(e.target.value))}
+          >
+            {Array.from({ length: 8 }, (_, i) => currentYear - 2 + i).map((y) => (
+              <option key={y} value={y}>
+                {y}년
+              </option>
+            ))}
+          </select>
+        </div>
         <div className="form-row">
           <label htmlFor="grade">학년</label>
           <select
@@ -85,12 +103,12 @@ export default function NewClassPage() {
           </select>
         </div>
         <p style={{ marginBottom: 16 }}>
-          <strong>학급 이름:</strong> {name}
+          <strong>학급:</strong> {displayName}
         </p>
         {error && <div className="alert alert-error">{error}</div>}
         <div style={{ display: 'flex', gap: 8 }}>
           <button type="submit" className="btn btn-primary" disabled={saving}>
-            {saving ? '저장 중...' : session ? '등록' : '체험 추가'}
+            {saving ? '저장 중...' : session ? '등록' : '학생 추가'}
           </button>
           <Link href="/classes" className="btn btn-ghost">
             취소

@@ -89,9 +89,11 @@ function LevelStepContent() {
     );
   }
 
+  const classroomDisplayName = classroom.school_year ? `${classroom.school_year}년 ${classroom.name}` : classroom.name;
+
   return (
     <div className="card">
-      <h1>{classroom.name} · {semester}학기 · {SUBJECT_LABELS[subject]} 레벨 단계</h1>
+      <h1>{classroomDisplayName} · {semester}학기 · {SUBJECT_LABELS[subject]} 레벨 단계</h1>
       <p className="sub">등급을 몇 단계로 나눌지 선택하세요.</p>
 
       <section className="level-step-section" style={{ marginBottom: 24 }}>

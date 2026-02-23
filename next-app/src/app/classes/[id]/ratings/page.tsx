@@ -54,6 +54,7 @@ function ClassRatingsContent() {
   const [ratings, setRatings] = useState<Record<string, Level>>({});
   const [activities, setActivities] = useState<Activity[]>([]);
   const [activityInput, setActivityInput] = useState('');
+  const [activityAreaId, setActivityAreaId] = useState<string>('');
   const [activitySaving, setActivitySaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -217,21 +218,24 @@ function ClassRatingsContent() {
     const desc = activityInput.trim();
     if (!desc || activitySaving) return;
     setActivitySaving(true);
+    const areaId = activityAreaId.trim() || null;
     if (isGuestId(id)) {
-      addGuestActivity(id, semester, subject, desc);
+      addGuestActivity(id, semester, subject, desc, areaId);
       setActivities(
         getGuestActivities(id, semester, subject).map((a) => ({ ...a, classroom_id: id, semester, subject } as Activity))
       );
       setActivityInput('');
+      setActivityAreaId('');
       setActivitySaving(false);
       return;
     }
-    const result = await addActivityAction(id, semester, subject, desc);
+    const result = await addActivityAction(id, semester, subject, desc, areaId);
     setActivitySaving(false);
     if (result.error) setError(result.error);
     else if (result.activity) {
       setActivities((prev) => [...prev, result.activity!]);
       setActivityInput('');
+      setActivityAreaId('');
     }
   };
 
@@ -251,9 +255,11 @@ function ClassRatingsContent() {
   if (!classroom) return <div className="alert alert-error">학급을 찾을 수 없습니다.</div>;
   if (!isIntegrated && (selectedAreaIds.length === 0 || !levelStep)) return <div className="loading">이동 중...</div>;
 
+  const classroomDisplayName = classroom.school_year ? `${classroom.school_year}년 ${classroom.name}` : classroom.name;
+
   return (
     <div className="card">
-      <h1>{classroom.name} · {semester}학기 · {SUBJECT_LABELS[subject]} 등급</h1>
+      <h1>{classroomDisplayName} · {semester}학기 · {SUBJECT_LABELS[subject]} 등급</h1>
       <p className="sub">
         {isIntegrated
           ? '학생마다 바른생활·슬기로운생활·즐거운생활 단원과 레벨을 선택하세요. (변경 시 자동 저장)'
@@ -282,9 +288,21 @@ function ClassRatingsContent() {
       <section className="activities-section" style={{ marginBottom: 24 }}>
         <h2 className="section-title">이번 학기 학습 활동</h2>
         <p className="sub" style={{ marginBottom: 10 }}>
-          이 과목·학기의 대표 활동을 적어 두면 평어 생성 시 GPT가 반영합니다.
+          단원을 고른 뒤, 해당 단원에서 한 활동을 적어 두면 평어 생성 시 GPT가 반영합니다.
         </p>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-start', marginBottom: 12 }}>
+          <select
+            className="input"
+            value={activityAreaId}
+            onChange={(e) => setActivityAreaId(e.target.value)}
+            style={{ minWidth: 160 }}
+            title="단원 선택"
+          >
+            <option value="">단원 선택 (선택 안 함)</option>
+            {(isIntegrated ? areas : areasFiltered).map((a) => (
+              <option key={a.id} value={a.id}>{a.name}</option>
+            ))}
+          </select>
           <input
             type="text"
             className="input"
@@ -305,19 +323,25 @@ function ClassRatingsContent() {
         </div>
         {activities.length > 0 && (
           <ul className="activities-list" style={{ margin: 0, paddingLeft: 20 }}>
-            {activities.map((a) => (
-              <li key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                <span style={{ flex: 1 }}>{a.description}</span>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => deleteActivity(a.id)}
-                  aria-label="삭제"
-                >
-                  삭제
-                </button>
-              </li>
-            ))}
+            {activities.map((a) => {
+              const areaName = a.area_id ? areas.find((x) => x.id === a.area_id)?.name : null;
+              return (
+                <li key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                  <span style={{ flex: 1 }}>
+                    {areaName ? <strong>[{areaName}]</strong> : null}
+                    {areaName ? ' ' : ''}{a.description}
+                  </span>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => deleteActivity(a.id)}
+                    aria-label="삭제"
+                  >
+                    삭제
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>

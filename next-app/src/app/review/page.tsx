@@ -34,6 +34,7 @@ export default function ReviewPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [gptTexts, setGptTexts] = useState<Record<string, string>>({});
+  const [gptError, setGptError] = useState<string | null>(null);
   const gptTriggeredRef = useRef(false);
 
   useEffect(() => {
@@ -66,9 +67,11 @@ export default function ReviewPage() {
         ]).then(([aRes, tRes]) => {
           setAreas((aRes.data ?? []) as Area[]);
           setTemplates((tRes.data ?? []) as Template[]);
+          setLoading(false);
         });
+      } else {
+        setLoading(false);
       }
-      setLoading(false);
       return;
     }
 
@@ -149,16 +152,19 @@ export default function ReviewPage() {
     });
   };
 
-  const activityDescriptions = activities.map((a) => a.description);
+  const activityDescriptions = activities.map((a) => a.description).filter(Boolean) as string[];
 
   useEffect(() => {
-    if (loading || activities.length === 0 || students.length === 0 || gptTriggeredRef.current) return;
+    if (loading || activityDescriptions.length === 0 || students.length === 0 || gptTriggeredRef.current) return;
     gptTriggeredRef.current = true;
+    setGptError(null);
 
     const run = async () => {
       for (const student of students) {
         setGptTexts((prev) => ({ ...prev, [student.id]: '' }));
       }
+      let hadError = false;
+      let firstErrorMessage: string | null = null;
       for (const student of students) {
         const baseText = getGeneratedText(student);
         const lines = baseText.split('\n').filter(Boolean);
@@ -173,18 +179,31 @@ export default function ReviewPage() {
                 activities: activityDescriptions,
               }),
             });
-            const data = await res.json();
-            if (data.error) results.push(line);
-            else results.push(data.sentence ?? line);
-          } catch {
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || data.error) {
+              hadError = true;
+              if (data?.error && !firstErrorMessage) firstErrorMessage = data.error;
+              results.push(line);
+            } else {
+              results.push(data.sentence ?? line);
+            }
+          } catch (e) {
+            hadError = true;
+            if (!firstErrorMessage) firstErrorMessage = e instanceof Error ? e.message : '네트워크 오류';
             results.push(line);
           }
         }
         setGptTexts((prev) => ({ ...prev, [student.id]: results.join('\n') }));
       }
+      if (hadError) {
+        const msg = firstErrorMessage
+          ? `학습 활동 반영 실패: ${firstErrorMessage}`
+          : '일부 문장은 학습 활동 반영에 실패했습니다. API 키와 네트워크를 확인해 주세요.';
+        setGptError(msg);
+      }
     };
     void run();
-  }, [loading, activities.length, students.length, activityDescriptions.join('\n')]);
+  }, [loading, activityDescriptions.length, students.length, activityDescriptions.join('\n')]);
 
   const getDisplayText = (student: Student) => {
     if (editedTexts[student.id] != null) return editedTexts[student.id];
@@ -216,6 +235,11 @@ export default function ReviewPage() {
       {isGptLoading && (
         <div className="alert" style={{ background: 'var(--color-primary-light)', color: 'var(--color-primary)' }}>
           평어 생성 중... (활동 반영)
+        </div>
+      )}
+      {gptError && (
+        <div className="alert alert-error" style={{ marginTop: 8 }}>
+          {gptError}
         </div>
       )}
       {students.length === 0 ? (

@@ -22,7 +22,7 @@ async function getOwnedClassroom(supabase: Awaited<ReturnType<typeof createClien
   if (!userId) return null;
   const { data, error } = await supabase
     .from('classrooms')
-    .select('id, grade, class_number, name')
+    .select('id, grade, class_number, name, school_year')
     .eq('id', classroomId)
     .eq('user_id', userId)
     .single();
@@ -38,8 +38,9 @@ export async function getClassroomsAction(): Promise<Classroom[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('classrooms')
-    .select('id, grade, class_number, name')
+    .select('id, grade, class_number, name, school_year')
     .eq('user_id', userId)
+    .order('school_year', { ascending: false, nullsFirst: false })
     .order('grade')
     .order('class_number');
 
@@ -51,15 +52,18 @@ export async function getClassroomsAction(): Promise<Classroom[]> {
 export async function createClassroomAction(
   grade: number,
   classNumber: number,
-  name: string
+  name: string,
+  schoolYear?: number | null
 ): Promise<{ id: string } | { error: string }> {
   const userId = await getUserId();
   if (!userId) return { error: '로그인이 필요합니다.' };
 
   const supabase = await createClient();
+  const payload: Record<string, unknown> = { grade, class_number: classNumber, name, user_id: userId };
+  if (schoolYear != null) payload.school_year = schoolYear;
   const { data, error } = await supabase
     .from('classrooms')
-    .insert({ grade, class_number: classNumber, name, user_id: userId })
+    .insert(payload)
     .select('id')
     .single();
 
@@ -151,7 +155,7 @@ export async function getClassroomDataForRatingsAction(
     supabase.from('students').select('id, number, name').eq('classroom_id', classroomId).order('number'),
     supabase.from('areas').select('id, subject, name, order_index, semester').eq('subject', subject).eq('semester', semester).order('order_index'),
     supabase.from('ratings').select('student_id, area_id, level'),
-    supabase.from('activities').select('id, classroom_id, semester, subject, description, created_at').eq('classroom_id', classroomId).eq('semester', semester).eq('subject', subject).order('created_at', { ascending: true }),
+    supabase.from('activities').select('id, classroom_id, semester, subject, description, area_id, created_at').eq('classroom_id', classroomId).eq('semester', semester).eq('subject', subject).order('created_at', { ascending: true }),
   ]);
 
   if (studentsRes.error) throw new Error(studentsRes.error.message);
@@ -190,14 +194,22 @@ export async function upsertRatingAction(studentId: string, areaId: string, leve
 }
 
 /** 소유 확인 후 활동 추가 */
-export async function addActivityAction(classroomId: string, semester: number, subject: string | null, description: string): Promise<{ activity?: Activity; error?: string }> {
+export async function addActivityAction(
+  classroomId: string,
+  semester: number,
+  subject: string | null,
+  description: string,
+  areaId?: string | null
+): Promise<{ activity?: Activity; error?: string }> {
   const supabase = await createClient();
   const classroom = await getOwnedClassroom(supabase, classroomId);
   if (!classroom) return { error: '권한이 없습니다.' };
+  const payload: Record<string, unknown> = { classroom_id: classroomId, semester, subject, description };
+  if (areaId != null && areaId !== '') payload.area_id = areaId;
   const { data, error } = await supabase
     .from('activities')
-    .insert({ classroom_id: classroomId, semester, subject, description })
-    .select('id, classroom_id, semester, subject, description, created_at')
+    .insert(payload)
+    .select('id, classroom_id, semester, subject, description, area_id, created_at')
     .single();
   if (error) return { error: error.message };
   return { activity: data as Activity };

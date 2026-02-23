@@ -64,9 +64,11 @@ export default function ClassDetailPage() {
   if (loading) return <div className="loading">로딩 중...</div>;
   if (error || !classroom) return <div className="alert alert-error">{error ?? '학급을 찾을 수 없습니다.'}</div>;
 
+  const classroomDisplayName = classroom.school_year ? `${classroom.school_year}년 ${classroom.name}` : classroom.name;
+
   return (
     <div className="card">
-      <h1>{classroom.name}</h1>
+      <h1>{classroomDisplayName}</h1>
       <p className="sub">학기를 고른 뒤 과목을 선택하고, 해당 과목의 등급을 입력하세요.</p>
 
       <section className="subject-section" style={{ marginBottom: 24 }}>

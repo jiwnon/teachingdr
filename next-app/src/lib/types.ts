@@ -70,6 +70,8 @@ export interface Classroom {
   grade: number;
   class_number: number;
   name: string;
+  /** 학년도 (예: 2025). 없으면 기존 데이터 */
+  school_year?: number | null;
 }
 
 export interface Area {
@@ -107,6 +109,8 @@ export interface Activity {
   semester: Semester;
   subject: string | null;
   description: string;
+  /** 해당 활동을 한 단원(area). null이면 단원 미지정 */
+  area_id?: string | null;
   created_at?: string;
 }
 

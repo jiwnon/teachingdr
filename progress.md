@@ -123,16 +123,16 @@ next-app/
 ├── DEPLOY.md                            # 배포 가이드 (환경 변수, report-mate.org)
 ├── public/manifest.json                 # PWA. theme_color #E07B54. 아이콘 /icons/icon-*x*.png
 ├── public/icons/                        # 72~512px PNG 아이콘
-├── supabase/migrations/                 # 9개 마이그레이션 SQL
+├── supabase/migrations/                 # 11개 마이그레이션 (classrooms_school_year, activities_area_id 포함)
 ├── scripts/
 │   ├── seed-국어수학-평어.mjs            # 국어·수학 1학기 areas + 평어 INSERT
 │   ├── seed-통합-평어.mjs               # 통합 1학기 areas(12개) + 평어 INSERT (subject='통합')
 │   ├── generate-placeholder-icons.js    # sharp로 PWA 아이콘 생성
-│   └── seed-data/                       # 국어/수학 JSON 4개 + 통합 JSON 2개
+│   └── seed-data/                       # 국어/수학 areas + 평어 문장, 통합 areas + 평어 문장
 │       ├── 국어-1학년1학기-areas.json
-│       ├── 국어-평어-문장.json           (없을 수 있음, 기존 seed 스크립트 내 참조)
+│       ├── 국어-평어-문장.json
 │       ├── 수학-1학년1학기-areas.json
-│       ├── 수학-평어-문장.json           (없을 수 있음)
+│       ├── 수학-평어-문장.json
 │       ├── 통합-1학년1학기-areas.json    # 12 areas (4 테마 × 3 생활), subject='통합'
 │       └── 통합-평어-문장.json          # level 1~4 × 12 areas 평어 문장
 ```
@@ -141,14 +141,14 @@ next-app/
 
 ## 5. DB 스키마 (Supabase)
 
-- **classrooms**: `id`, `grade`, `class_number`, `name`, **`user_id`**(text, NextAuth 사용자 소유). unique(grade, class_number).
+- **classrooms**: `id`, `grade`, `class_number`, `name`, **`user_id`**(text, NextAuth 사용자 소유), **`school_year`**(int, nullable, 학년도 예: 2025 → "2025년 1학년 1반" 표시). unique(grade, class_number).
 - **areas**: `id`, `subject`, `name`, `order_index`, `semester`(1|2). 과목·학기별 단원.
   - 국어/수학: `subject='국어'|'수학'`
   - 통합: `subject='통합'`, name 형식 `"테마(생활)"` (예: `학교(바른생활)`)
 - **templates**: `id`, `area_id`(FK), `level`('1'|'2'|'3'|'4'), `sentence`.
 - **students**: `id`, `number`, `name`, `classroom_id`(FK, nullable).
 - **ratings**: `(student_id, area_id)` PK, `level`('1'|'2'|'3'|'4').
-- **activities**: `id`, `classroom_id`, `semester`, `subject`, `description`, `created_at` — GPT 평어 재작성 시 참고.
+- **activities**: `id`, `classroom_id`, `semester`, `subject`, `description`, **`area_id`**(FK to areas, nullable, 해당 단원), `created_at` — GPT 평어 재작성 시 참고. 등급 페이지에서 단원 드롭다운으로 선택 가능.
 
 UI 등급 표기: **1=매우잘함, 2=잘함, 3=보통, 4=노력요함.**
 
@@ -179,7 +179,18 @@ UI 등급 표기: **1=매우잘함, 2=잘함, 3=보통, 4=노력요함.**
 
 ---
 
-## 7. 다음에 할 수 있는 작업
+## 7. 최근 세션 작업 요약 (2025-02)
+
+- **학급 등록 연도**: 학급 등록 폼에 **연도** 선택 추가(기본 올해). DB `classrooms.school_year` 추가. 목록·상세·학생 명단·등급/단원/레벨단계 제목에서 "2025년 1학년 1반" 형태로 표시. 마이그레이션: `20240221100000_classrooms_school_year.sql`.
+- **학급 등록 UX**: 체험 시 버튼 문구 "체험 추가" → **"학생 추가"**. 등록(또는 학생 추가) 후 **학생 명단** 페이지(`/classes/[id]/students`)로 바로 이동.
+- **학생 명단**: "학급으로 돌아가기" → **"과목·단원 선택하기"**.
+- **seed-data 정리**: `국어-평어-문장-추가.json`, `수학-평어-문장-추가.json`, `통합-평어-문장-신규.json` 삭제. 내용은 각각 `국어-평어-문장.json`, `수학-평어-문장.json`, `통합-평어-문장.json`에 이미 반영됨.
+- **GPT 학습활동 반영**: API 프롬프트 강화(활동 구체 반영 지시). 429/API키/rate limit 한글 안내. 리뷰 페이지에서 실패 시 **실제 오류 메시지** 표시. 체험 모드에서 areas/templates 로드 완료 후에만 GPT 호출하도록 로딩 순서 수정.
+- **학습 활동 단원 연결**: 등급 페이지에서 활동 입력 시 **단원 드롭다운** 추가(선택 안 함 가능). DB `activities.area_id` 추가. 활동 목록에 `[단원명] 활동 설명` 형태로 표시. 마이그레이션: `20240222100000_activities_area_id.sql`.
+
+---
+
+## 8. 다음에 할 수 있는 작업
 
 - [ ] 엑셀 다운로드: review 결과 xlsx 내보내기
 - [ ] DB orphan 학생/ratings 정리 (Supabase SQL Editor에서 실행)
@@ -187,7 +198,7 @@ UI 등급 표기: **1=매우잘함, 2=잘함, 3=보통, 4=노력요함.**
 
 ---
 
-## 8. 환경·배포 요약
+## 9. 환경·배포 요약
 
 - **로컬**: `next-app/.env.local` → `NEXTAUTH_URL=http://localhost:3000`, NextAuth 4개 값, Supabase 2개 값, OPENAI_API_KEY(선택).
 - **배포**: Cloudflare Workers. `wrangler.jsonc`에 vars(NEXTAUTH_URL, AUTH_TRUST_HOST, GOOGLE_CLIENT_ID). Secrets: NEXTAUTH_SECRET, GOOGLE_CLIENT_SECRET. `npm run deploy:cf`.
@@ -196,7 +207,7 @@ UI 등급 표기: **1=매우잘함, 2=잘함, 3=보통, 4=노력요함.**
 
 ---
 
-## 9. 참고
+## 10. 참고
 
 - **문서**: `next-app/DEPLOY.md`(배포·로그인 점검), `next-app/ERRORS_AND_SETUP.md`(설정·에러).
 - **시드 재실행**:

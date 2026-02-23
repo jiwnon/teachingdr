@@ -151,9 +151,11 @@ function UnitsContent() {
   if (error) return <div className="alert alert-error">{error}</div>;
   if (!classroom) return <div className="alert alert-error">학급을 찾을 수 없습니다.</div>;
 
+  const classroomDisplayName = classroom.school_year ? `${classroom.school_year}년 ${classroom.name}` : classroom.name;
+
   return (
     <div className="card">
-      <h1>{classroom.name} · {semester}학기 · {SUBJECT_LABELS[subject]} 단원 선택</h1>
+      <h1>{classroomDisplayName} · {semester}학기 · {SUBJECT_LABELS[subject]} 단원 선택</h1>
       <p className="sub">
         {isIntegrated ? '바른생활·슬기로운생활·즐거운생활 각각 단원을 하나씩 선택하세요.' : '평가할 단원을 선택하세요. (최소 1개)'}
       </p>

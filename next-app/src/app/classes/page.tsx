@@ -65,7 +65,7 @@ export default function ClassesPage() {
                 <tr key={c.id}>
                   <td>
                     <Link href={`/classes/${c.id}`} className="link">
-                      {c.name}
+                      {c.school_year ? `${c.school_year}년 ${c.name}` : c.name}
                     </Link>
                   </td>
                   <td>

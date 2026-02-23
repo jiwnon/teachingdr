@@ -27,15 +27,15 @@ type GuestState = {
   /** "studentId-areaId" -> level */
   ratings: Record<string, Level>;
   /** classroomId -> activities */
-  activitiesByClass: Record<string, Array<{ id: string; semester: number; subject: string | null; description: string }>>;
+  activitiesByClass: Record<string, Array<{ id: string; semester: number; subject: string | null; description: string; area_id?: string | null }>>;
   addClassroom: (c: Omit<Classroom, 'id'>) => Classroom;
   getClassroom: (id: string) => Classroom | null;
   setStudents: (classroomId: string, students: GuestStudent[]) => void;
   getStudents: (classroomId: string) => GuestStudent[];
   setRating: (key: string, level: Level | null) => void;
   getRatings: () => Record<string, Level>;
-  addActivity: (classroomId: string, semester: number, subject: string | null, description: string) => void;
-  getActivities: (classroomId: string, semester: number, subject: string) => Array<{ id: string; description: string }>;
+  addActivity: (classroomId: string, semester: number, subject: string | null, description: string, areaId?: string | null) => void;
+  getActivities: (classroomId: string, semester: number, subject: string) => Array<{ id: string; description: string; area_id?: string | null }>;
   deleteActivity: (classroomId: string, activityId: string) => void;
   clear: () => void;
 };
@@ -79,11 +79,11 @@ export const useGuestStore = create<GuestState>((set, get) => ({
 
   getRatings: () => get().ratings,
 
-  addActivity: (classroomId, semester, subject, description) => {
+  addActivity: (classroomId, semester, subject, description, areaId) => {
     const id = GUEST_PREFIX + 'act-' + crypto.randomUUID();
     set((s) => {
       const list = s.activitiesByClass[classroomId] ?? [];
-      const next = { ...s.activitiesByClass, [classroomId]: [...list, { id, semester, subject, description }] };
+      const next = { ...s.activitiesByClass, [classroomId]: [...list, { id, semester, subject, description, area_id: areaId ?? null }] };
       return { activitiesByClass: next };
     });
   },
@@ -92,7 +92,7 @@ export const useGuestStore = create<GuestState>((set, get) => ({
     const list = get().activitiesByClass[classroomId] ?? [];
     return list
       .filter((a) => a.semester === semester && a.subject === subject)
-      .map((a) => ({ id: a.id, description: a.description }));
+      .map((a) => ({ id: a.id, description: a.description, area_id: a.area_id ?? null }));
   },
 
   deleteActivity: (classroomId, activityId) => {
