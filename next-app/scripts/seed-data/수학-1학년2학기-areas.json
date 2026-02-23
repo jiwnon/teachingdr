@@ -1,0 +1,38 @@
+[
+  {
+    "subject": "수학",
+    "name": "100까지의 수",
+    "order_index": 1,
+    "semester": 2
+  },
+  {
+    "subject": "수학",
+    "name": "덧셈과 뺄셈(1)",
+    "order_index": 2,
+    "semester": 2
+  },
+  {
+    "subject": "수학",
+    "name": "모양과 시각",
+    "order_index": 3,
+    "semester": 2
+  },
+  {
+    "subject": "수학",
+    "name": "덧셈과 뺄셈(2)",
+    "order_index": 4,
+    "semester": 2
+  },
+  {
+    "subject": "수학",
+    "name": "규칙 찾기",
+    "order_index": 5,
+    "semester": 2
+  },
+  {
+    "subject": "수학",
+    "name": "덧셈과 뺄셈(3)",
+    "order_index": 6,
+    "semester": 2
+  }
+]

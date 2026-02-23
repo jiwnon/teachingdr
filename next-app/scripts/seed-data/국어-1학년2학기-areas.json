@@ -1,0 +1,50 @@
+[
+  {
+    "subject": "국어",
+    "name": "1. 기분을 말해요",
+    "order_index": 0,
+    "semester": 2
+  },
+  {
+    "subject": "국어",
+    "name": "2. 낱말을 정확하게 읽어요",
+    "order_index": 1,
+    "semester": 2
+  },
+  {
+    "subject": "국어",
+    "name": "3. 그림일기를 써요",
+    "order_index": 2,
+    "semester": 2
+  },
+  {
+    "subject": "국어",
+    "name": "4. 감동을 나누어요",
+    "order_index": 3,
+    "semester": 2
+  },
+  {
+    "subject": "국어",
+    "name": "5. 생각을 키워요",
+    "order_index": 4,
+    "semester": 2
+  },
+  {
+    "subject": "국어",
+    "name": "6. 문장을 읽고 써요",
+    "order_index": 5,
+    "semester": 2
+  },
+  {
+    "subject": "국어",
+    "name": "7. 무엇이 중요할까요",
+    "order_index": 6,
+    "semester": 2
+  },
+  {
+    "subject": "국어",
+    "name": "8. 느끼고 표현해요",
+    "order_index": 7,
+    "semester": 2
+  }
+]

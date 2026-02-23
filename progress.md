@@ -7,7 +7,7 @@
 ## 1. 프로젝트 개요
 
 - **이름**: ReportMate (RM)
-- **목적**: 초등 1학년 1학기 **국어/수학/통합** 생활기록부 평어 자동 생성 **웹앱** (엑셀 대체용)
+- **목적**: 초등 1학년 1·2학기 **국어/수학/통합** 생활기록부 평어 자동 생성 **웹앱** (엑셀 대체용)
 - **성격**: 단일 반 도구. **SaaS 아님.** 로그인·프로젝트·멀티테넌트 없음.
 - **스택**: Next.js 15 (App Router) + TypeScript, Supabase (Postgres), Zustand, **Auth.js v5 / next-auth@5 (Google OAuth)**.
 - **배포**: Cloudflare Workers (OpenNext). **접속 URL**: https://report-mate.org (www.report-mate.org 동일). workers.dev 비활성화.
@@ -72,7 +72,7 @@
 | 레벨 단계 | ✅ | 2/3/4단계 선택. 국어/수학은 별도 페이지, 통합은 ratings 내 인라인 선택 |
 | DB 스키마 | ✅ | classrooms, activities, areas(semester), templates, students(classroom_id), ratings. level 1~4. |
 | 등급 체계 | ✅ | **매우잘함(1) / 잘함(2) / 보통(3) / 노력요함(4)**. UI에서 2/3/4단계로 축약 표시. |
-| 템플릿 시드 | ✅ | **국어·수학**: `seed-국어수학-평어.mjs` + JSON 4개. **통합**: `seed-통합-평어.mjs` + JSON 2개. |
+| 템플릿 시드 | ✅ | **1학기**: 국어·수학 `seed-국어수학-평어.mjs` + JSON 4개, 통합 `seed-통합-평어.mjs` + JSON 2개. **2학기**: 국어·수학·통합 `seed-2학기-평어.mjs` + JSON 6개(areas 3 + 평어 3). |
 | 평어 생성 | ✅ | 같은 (단원, 레벨)이라도 학생마다 **다른 문장 배정** (랜덤 셔플, 중복 방지, 부족 시 순환). |
 | /review | ✅ | 국어/수학: selectedAreaIds 기준. 통합: 학생별 ratings 기준 areaLevels. GPT 재작성·수정·복사. **줄바꿈 허용** 체크박스(해제 시 한 줄로 붙여서 보기·복사, 성적서 붙여넣기용). |
 | UI/디자인 | ✅ | 따뜻한 색상(살구/테라코타), 아이보리 배경, rounded corners. 모바일 반응형. PWA 아이콘. |
@@ -131,14 +131,21 @@ next-app/
 ├── scripts/
 │   ├── seed-국어수학-평어.mjs            # 국어·수학 1학기 areas + 평어 INSERT
 │   ├── seed-통합-평어.mjs               # 통합 1학기 areas(12개) + 평어 INSERT (subject='통합')
+│   ├── seed-2학기-평어.mjs              # 국어·수학·통합 2학기 areas + 평어 INSERT (3과목 통합 스크립트)
 │   ├── generate-placeholder-icons.js    # sharp로 PWA 아이콘 생성
-│   └── seed-data/                       # 국어/수학 areas + 평어 문장, 통합 areas + 평어 문장
+│   └── seed-data/                       # 국어/수학/통합 areas + 평어 문장 (1학기 + 2학기)
 │       ├── 국어-1학년1학기-areas.json
 │       ├── 국어-평어-문장.json
 │       ├── 수학-1학년1학기-areas.json
 │       ├── 수학-평어-문장.json
 │       ├── 통합-1학년1학기-areas.json    # 12 areas (4 테마 × 3 생활), subject='통합'
-│       └── 통합-평어-문장.json          # level 1~4 × 12 areas 평어 문장
+│       ├── 통합-평어-문장.json          # level 1~4 × 12 areas 평어 문장
+│       ├── 국어-1학년2학기-areas.json    # 8 areas, semester=2
+│       ├── 국어-2학기-평어-문장.json     # 88건
+│       ├── 수학-1학년2학기-areas.json    # 6 areas, semester=2
+│       ├── 수학-2학기-평어-문장.json     # 66건
+│       ├── 통합-1학년2학기-areas.json    # 12 areas (4 테마 × 3 생활), semester=2
+│       └── 통합-2학기-평어-문장.json     # 132건
 ```
 
 ---
@@ -214,7 +221,7 @@ UI 등급 표기: **1=매우잘함, 2=잘함, 3=보통, 4=노력요함.**
 - [x] 엑셀 다운로드: review 결과 xlsx 내보내기
 - [x] 피드백 게시판: 익명 피드백 작성·열람·삭제
 - [ ] DB orphan 학생/ratings 정리 (Supabase SQL Editor에서 실행)
-- [ ] 2학기 통합 시드 데이터 추가 (필요 시)
+- [x] 2학기 국어·수학·통합 시드 데이터 추가 (areas 26개 + templates 286건)
 
 ---
 
@@ -231,7 +238,8 @@ UI 등급 표기: **1=매우잘함, 2=잘함, 3=보통, 4=노력요함.**
 
 - **문서**: `next-app/DEPLOY.md`(배포·로그인 점검), `next-app/ERRORS_AND_SETUP.md`(설정·에러).
 - **시드 재실행**:
-  - 국어·수학: `node scripts/seed-국어수학-평어.mjs` (next-app 폴더에서)
-  - 통합: `node scripts/seed-통합-평어.mjs` (next-app 폴더에서)
+  - 1학기 국어·수학: `node scripts/seed-국어수학-평어.mjs` (next-app 폴더에서)
+  - 1학기 통합: `node scripts/seed-통합-평어.mjs` (next-app 폴더에서)
+  - 2학기 국어·수학·통합: `node scripts/seed-2학기-평어.mjs` (next-app 폴더에서)
   - `.env.local`에 Supabase URL/Anon Key 필요
 - **DB 정리 SQL**: orphan 학생 삭제 → `DELETE FROM ratings WHERE student_id IN (SELECT id FROM students WHERE classroom_id IS NULL); DELETE FROM students WHERE classroom_id IS NULL;`
