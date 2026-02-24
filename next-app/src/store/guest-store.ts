@@ -10,12 +10,22 @@ import type { Activity } from '@/lib/types';
 
 const GUEST_PREFIX = 'guest-';
 
+function uuid(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+  });
+}
+
 export function isGuestId(id: string): boolean {
   return id.startsWith(GUEST_PREFIX);
 }
 
 export function newGuestId(): string {
-  return GUEST_PREFIX + crypto.randomUUID();
+  return GUEST_PREFIX + uuid();
 }
 
 type GuestStudent = Student & { id: string };
@@ -80,7 +90,7 @@ export const useGuestStore = create<GuestState>((set, get) => ({
   getRatings: () => get().ratings,
 
   addActivity: (classroomId, semester, subject, description, areaId) => {
-    const id = GUEST_PREFIX + 'act-' + crypto.randomUUID();
+    const id = GUEST_PREFIX + 'act-' + uuid();
     set((s) => {
       const list = s.activitiesByClass[classroomId] ?? [];
       const next = { ...s.activitiesByClass, [classroomId]: [...list, { id, semester, subject, description, area_id: areaId ?? null }] };

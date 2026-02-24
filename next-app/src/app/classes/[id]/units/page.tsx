@@ -203,18 +203,18 @@ function UnitsContent() {
         )}
       </section>
 
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      <div className="action-buttons" style={{ justifyContent: 'space-between' }}>
+        <Link href={`/classes/${id}`} className="btn btn-secondary">
+          ← 학급으로
+        </Link>
         <button
           type="button"
           className="btn btn-primary"
           onClick={goNext}
           disabled={!canGoNext}
         >
-          다음: 등급 단계 선택
+          등급 단계 선택 →
         </button>
-        <Link href={`/classes/${id}`} className="btn btn-ghost">
-          학급으로 돌아가기
-        </Link>
       </div>
     </div>
   );

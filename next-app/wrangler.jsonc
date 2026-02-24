@@ -1,1 +1,26 @@
-{"$schema":"node_modules/wrangler/config-schema.json","name":"report-mate","main":".open-next/worker.js","compatibility_date":"2025-02-01","compatibility_flags":["nodejs_compat","nodejs_compat_populate_process_env","global_fetch_strictly_public"],"assets":{"directory":".open-next/assets","binding":"ASSETS"},"services":[{"binding":"WORKER_SELF_REFERENCE","service":"report-mate"}],"images":{"binding":"IMAGES"},"workers_dev":false,"routes":[{"pattern":"report-mate.org","custom_domain":true},{"pattern":"www.report-mate.org","custom_domain":true}],"vars":{"NEXTAUTH_URL":"https://report-mate.org","AUTH_TRUST_HOST":"true","GOOGLE_CLIENT_ID":"807951072245-e7ean9491417ij0iavc29iddi4mpfhk2.apps.googleusercontent.com","ADMIN_EMAIL":"alithya0707@gmail.com"}}
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "report-mate",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2025-02-01",
+  "compatibility_flags": ["nodejs_compat", "nodejs_compat_populate_process_env", "global_fetch_strictly_public"],
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "report-mate" }],
+  "images": { "binding": "IMAGES" },
+  "workers_dev": false,
+  "routes": [
+    { "pattern": "report-mate.org", "custom_domain": true },
+    { "pattern": "www.report-mate.org", "custom_domain": true }
+  ],
+  "vars": {
+    "NEXTAUTH_URL": "https://report-mate.org",
+    "AUTH_TRUST_HOST": "true",
+    "GOOGLE_CLIENT_ID": "807951072245-e7ean9491417ij0iavc29iddi4mpfhk2.apps.googleusercontent.com",
+    "ADMIN_EMAIL": "alithya0707@gmail.com"
+  },
+  "observability": {
+    "enabled": true,
+    "logs": { "enabled": true, "invocation_logs": true }
+  },
+  "placement": { "mode": "smart", "hostname": "api.openai.com" }
+}

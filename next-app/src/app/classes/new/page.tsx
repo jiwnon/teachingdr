@@ -17,6 +17,7 @@ export default function NewClassPage() {
   const [grade, setGrade] = useState<number>(1);
   const [classNumber, setClassNumber] = useState<number>(1);
   const [saving, setSaving] = useState(false);
+  const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const name = `${grade}학년 ${classNumber}반`;
@@ -27,20 +28,28 @@ export default function NewClassPage() {
     setSaving(true);
     setError(null);
 
-    if (session?.user) {
-      const result = await createClassroomAction(grade, classNumber, name, schoolYear);
-      if ('error' in result) {
-        setError(result.error);
+    try {
+      if (session?.user) {
+        const result = await createClassroomAction(grade, classNumber, name, schoolYear);
+        if ('error' in result) {
+          setError(result.error);
+          setSaving(false);
+          return;
+        }
+        setSuccess(true);
         setSaving(false);
+        setTimeout(() => router.push(`/classes/${result.id}/students`), 1200);
         return;
       }
-      router.push(`/classes/${result.id}/students`);
-      return;
-    }
 
-    const classroom = addClassroom({ grade, class_number: classNumber, name, school_year: schoolYear });
-    setSaving(false);
-    router.push(`/classes/${classroom.id}/students`);
+      const classroom = addClassroom({ grade, class_number: classNumber, name, school_year: schoolYear });
+      setSuccess(true);
+      setSaving(false);
+      setTimeout(() => router.push(`/classes/${classroom.id}/students`), 1200);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '학급 생성 중 오류가 발생했습니다.');
+      setSaving(false);
+    }
   };
 
   if (status === 'loading') return <div className="loading">로딩 중...</div>;
@@ -106,8 +115,13 @@ export default function NewClassPage() {
           <strong>학급:</strong> {displayName}
         </p>
         {error && <div className="alert alert-error">{error}</div>}
+        {success && (
+          <div className="alert" style={{ background: 'var(--color-primary-light)', color: 'var(--color-primary)' }}>
+            저장 완료! 학생 목록으로 이동합니다...
+          </div>
+        )}
         <div style={{ display: 'flex', gap: 8 }}>
-          <button type="submit" className="btn btn-primary" disabled={saving}>
+          <button type="submit" className="btn btn-primary" disabled={saving || success}>
             {saving ? '저장 중...' : session ? '등록' : '학생 추가'}
           </button>
           <Link href="/classes" className="btn btn-ghost">

@@ -391,12 +391,12 @@ function ClassRatingsContent() {
               );
             })}
           </div>
-          <div className="action-buttons">
-            <Link href="/review" className="btn btn-primary">
-              평어 생성
+          <div className="action-buttons" style={{ justifyContent: 'space-between' }}>
+            <Link href={`/classes/${id}`} className="btn btn-secondary">
+              ← 학급으로
             </Link>
-            <Link href={`/classes/${id}`} className="btn btn-ghost">
-              학급으로
+            <Link href="/review" className="btn btn-primary">
+              평어 생성 →
             </Link>
           </div>
         </>
@@ -442,18 +442,12 @@ function ClassRatingsContent() {
               </tbody>
             </table>
           </div>
-          <div className="action-buttons">
+          <div className="action-buttons" style={{ justifyContent: 'space-between' }}>
+            <Link href={`/classes/${id}/level-step?sem=${semester}&subject=${subject}`} className="btn btn-secondary">
+              ← 등급 단계
+            </Link>
             <Link href="/review" className="btn btn-primary">
-              평어 생성
-            </Link>
-            <Link href={`/classes/${id}/level-step?sem=${semester}&subject=${subject}`} className="btn btn-ghost">
-              등급 단계 변경
-            </Link>
-            <Link href={`/classes/${id}/units?sem=${semester}&subject=${subject}`} className="btn btn-ghost">
-              단원 다시 선택
-            </Link>
-            <Link href={`/classes/${id}`} className="btn btn-ghost">
-              학급으로
+              평어 생성 →
             </Link>
           </div>
         </>

@@ -17,7 +17,7 @@ import type { Activity } from '@/lib/types';
 
 export default function ReviewPage() {
   const { data: session, status } = useSession();
-  const { classroom, semester, subject, selectedAreaIds } = useAppStore();
+  const { classroom, semester, subject, selectedAreaIds, cachedReview, setCachedReview } = useAppStore();
   const sub = subject ?? '국어';
   const sem = semester ?? 1;
 
@@ -25,26 +25,44 @@ export default function ReviewPage() {
   const getGuestRatings = useGuestStore((s) => s.getRatings);
   const getGuestActivities = useGuestStore((s) => s.getActivities);
 
+  const cacheKey = useMemo(() => {
+    if (!classroom) return '';
+    const ids = [...selectedAreaIds].sort().join(',');
+    return `${classroom.id}:${sem}:${sub}:${ids}`;
+  }, [classroom, sem, sub, selectedAreaIds]);
+
+  const matchesCache = useMemo(() => {
+    if (!cachedReview || !classroom) return false;
+    const cachedIds = [...cachedReview.areaIds].sort().join(',');
+    const currentIds = [...selectedAreaIds].sort().join(',');
+    return (
+      cachedReview.classroomId === classroom.id &&
+      cachedReview.semester === sem &&
+      cachedReview.subject === sub &&
+      cachedIds === currentIds
+    );
+  }, [cachedReview, classroom, sem, sub, selectedAreaIds]);
+
   const [students, setStudents] = useState<Student[]>([]);
   const [areas, setAreas] = useState<Area[]>([]);
   const [ratings, setRatings] = useState<Rating[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
-  const [editedTexts, setEditedTexts] = useState<Record<string, string>>({});
+  const [editedTexts, setEditedTexts] = useState<Record<string, string>>(matchesCache ? cachedReview!.edited : {});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [gptTexts, setGptTexts] = useState<Record<string, string>>({});
+  const [gptTexts, setGptTexts] = useState<Record<string, string>>(matchesCache ? cachedReview!.texts : {});
   const [gptError, setGptError] = useState<string | null>(null);
   const [allowLineBreak, setAllowLineBreak] = useState(true);
-  const gptTriggeredRef = useRef(false);
+  const gptTriggeredRef = useRef(matchesCache);
 
   useEffect(() => {
     if (status === 'loading') return;
 
     if (classroom && isGuestId(classroom.id)) {
       setError(null);
-      gptTriggeredRef.current = false;
+      if (!matchesCache) gptTriggeredRef.current = false;
       setStudents(getGuestStudents(classroom.id));
       const ratingMap = getGuestRatings();
       setRatings(
@@ -79,7 +97,7 @@ export default function ReviewPage() {
 
     if (classroom && session) {
       setError(null);
-      gptTriggeredRef.current = false;
+      if (!matchesCache) gptTriggeredRef.current = false;
       getReviewDataAction(classroom.id, sem, sub)
         .then((data) => {
           if (data) {
@@ -113,6 +131,8 @@ export default function ReviewPage() {
     ratingMap[`${r.student_id}-${r.area_id}`] = r.level;
   }
 
+  /** 평어 최대 줄 수 (초과 시 앞쪽만 사용) */
+  const MAX_COMMENT_LINES = 3;
   const lifeOrder: Record<string, number> = { 바른생활: 0, 슬기로운생활: 1, 즐거운생활: 2 };
   const areaIdToLife = useMemo(() => {
     const m = new Map<string, string>();
@@ -149,11 +169,17 @@ export default function ReviewPage() {
     }));
   };
 
+  const limitToLines = (text: string) => {
+    const lines = text.split('\n').filter(Boolean);
+    return lines.slice(0, MAX_COMMENT_LINES).join('\n');
+  };
+
   const getGeneratedText = (student: Student) => {
-    return generateComment(getAreaLevels(student), templatesForSubject, {
+    const full = generateComment(getAreaLevels(student), templatesForSubject, {
       studentId: student.id,
       sentenceIndexMap: sentenceAssignment.get(student.id) ?? undefined,
     });
+    return limitToLines(full);
   };
 
   const hasAnyActivity = activities.length > 0;
@@ -205,10 +231,12 @@ export default function ReviewPage() {
                 activities: areaActivities,
               }),
             });
-            const data = await res.json().catch(() => ({}));
+            const text = await res.text();
+            const data = (() => { try { return JSON.parse(text); } catch { return {}; } })();
             if (!res.ok || data.error) {
               hadError = true;
-              if (data?.error && !firstErrorMessage) firstErrorMessage = data.error;
+              const errMsg = typeof data?.error === 'string' ? data.error : (res.status === 500 && text && text.length < 200 ? text : null);
+              if (errMsg && !firstErrorMessage) firstErrorMessage = errMsg;
               results.push(line.sentence);
             } else {
               results.push(data.sentence ?? line.sentence);
@@ -219,11 +247,19 @@ export default function ReviewPage() {
             results.push(line.sentence);
           }
         }
-        setGptTexts((prev) => ({ ...prev, [student.id]: results.join('\n') }));
+        const joined = results.join('\n');
+        const lines = joined.split('\n').filter(Boolean);
+        const limited = lines.slice(0, MAX_COMMENT_LINES).join('\n');
+        setGptTexts((prev) => ({ ...prev, [student.id]: limited }));
       }
       if (hadError) {
-        const msg = firstErrorMessage
-          ? `학습 활동 반영 실패: ${firstErrorMessage}`
+        const friendly =
+          firstErrorMessage &&
+          /Internal Server Error|500|timeout|ETIMEDOUT/i.test(firstErrorMessage)
+            ? 'OpenAI 서버가 일시적으로 응답하지 않습니다. 잠시 후 다시 시도해 주세요.'
+            : firstErrorMessage;
+        const msg = friendly
+          ? `학습 활동 반영 실패: ${friendly}`
           : '일부 문장은 학습 활동 반영에 실패했습니다. API 키와 네트워크를 확인해 주세요.';
         setGptError(msg);
       }
@@ -231,11 +267,26 @@ export default function ReviewPage() {
     void run();
   }, [loading, hasAnyActivity, students.length, activities]);
 
+  // 평어가 변경될 때마다 캐시에 저장
+  useEffect(() => {
+    if (!classroom || loading) return;
+    const hasTexts = Object.keys(gptTexts).length > 0 || Object.keys(editedTexts).length > 0;
+    if (!hasTexts) return;
+    setCachedReview({
+      classroomId: classroom.id,
+      semester: sem,
+      subject: sub,
+      areaIds: selectedAreaIds,
+      texts: gptTexts,
+      edited: editedTexts,
+    });
+  }, [gptTexts, editedTexts]);
+
   const getRawText = (student: Student) => {
     if (editedTexts[student.id] != null) return editedTexts[student.id];
     if (student.id in gptTexts) {
       const t = gptTexts[student.id];
-      return t === '' ? '평어 생성 중...' : t;
+      return t === '' ? '평어 생성 중...' : limitToLines(t);
     }
     return getGeneratedText(student);
   };
@@ -376,7 +427,17 @@ export default function ReviewPage() {
           </div>
         ))
       )}
-      <Link href="/" className="btn btn-ghost">← 처음으로</Link>
+      <div className="action-buttons" style={{ justifyContent: 'space-between' }}>
+        {classroom ? (
+          <Link href={`/classes/${classroom.id}/ratings?sem=${sem}&subject=${sub}`} className="btn btn-secondary">
+            ← 등급 입력
+          </Link>
+        ) : (
+          <Link href="/" className="btn btn-secondary">
+            ← 처음으로
+          </Link>
+        )}
+      </div>
     </div>
   );
 }

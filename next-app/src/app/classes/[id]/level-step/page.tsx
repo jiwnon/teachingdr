@@ -118,21 +118,18 @@ function LevelStepContent() {
         </div>
       </section>
 
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      <div className="action-buttons" style={{ justifyContent: 'space-between' }}>
+        <Link href={`/classes/${id}/units?sem=${semester}&subject=${subject}`} className="btn btn-secondary">
+          ← 단원 선택
+        </Link>
         <button
           type="button"
           className="btn btn-primary"
           onClick={() => selectedStep && goNext(selectedStep)}
           disabled={!selectedStep}
         >
-          다음: 학생별 평가 입력
+          등급 입력 →
         </button>
-        <Link href={`/classes/${id}/units?sem=${semester}&subject=${subject}`} className="btn btn-ghost">
-          단원 선택으로
-        </Link>
-        <Link href={`/classes/${id}`} className="btn btn-ghost">
-          학급으로
-        </Link>
       </div>
     </div>
   );

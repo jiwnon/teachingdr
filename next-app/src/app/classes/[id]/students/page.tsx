@@ -23,6 +23,7 @@ export default function ClassStudentsPage() {
   const [rows, setRows] = useState<StudentRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -68,6 +69,7 @@ export default function ClassStudentsPage() {
   const handleSave = async () => {
     setSaving(true);
     setError(null);
+    setSuccess(false);
 
     if (isGuestId(id)) {
       const guestStudents = rows.map((r, i) => ({
@@ -78,6 +80,7 @@ export default function ClassStudentsPage() {
       }));
       setGuestStudents(id, guestStudents);
       setSaving(false);
+      setSuccess(true);
       return;
     }
 
@@ -89,6 +92,7 @@ export default function ClassStudentsPage() {
     }
     setRows(result.students.map((s) => ({ id: s.id, number: s.number, name: s.name })));
     setSaving(false);
+    setSuccess(true);
   };
 
   if (loading) return <div className="loading">로딩 중...</div>;
@@ -135,9 +139,14 @@ export default function ClassStudentsPage() {
           </tbody>
         </table>
       </div>
+      {success && (
+        <div className="alert" style={{ marginBottom: 12, background: 'var(--color-primary-light)', color: 'var(--color-primary)' }}>
+          저장 완료!
+        </div>
+      )}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
         <button type="button" className="btn btn-secondary" onClick={addRow}>
-          행 추가
+          학생 추가
         </button>
         <button type="button" className="btn btn-primary" onClick={handleSave} disabled={saving}>
           {saving ? '저장 중...' : '저장'}

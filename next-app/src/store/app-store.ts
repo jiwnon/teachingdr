@@ -8,6 +8,17 @@ import type { Classroom } from '@/lib/types';
 import type { SubjectCode } from '@/lib/types';
 import type { Semester } from '@/lib/types';
 
+type CachedReview = {
+  classroomId: string;
+  semester: number;
+  subject: string;
+  areaIds: string[];
+  /** studentId -> 최종 평어 텍스트 */
+  texts: Record<string, string>;
+  /** studentId -> 사용자가 수정한 텍스트 */
+  edited: Record<string, string>;
+};
+
 type AppState = {
   /** 현재 선택한 학급 (학급 흐름에서 사용) */
   classroom: Classroom | null;
@@ -21,6 +32,8 @@ type AppState = {
   levelStep: LevelStep | null;
   studentNames: string[];
   grades: Record<string, Level>;
+  /** 평어 생성 결과 캐시 (뒤로갔다 돌아와도 유지) */
+  cachedReview: CachedReview | null;
   setClassroom: (classroom: Classroom | null) => void;
   setSemester: (semester: Semester | null) => void;
   setSubject: (subject: SubjectCode | null) => void;
@@ -28,6 +41,7 @@ type AppState = {
   setLevelStep: (step: LevelStep | null) => void;
   setStudentNames: (names: string[]) => void;
   setGrade: (studentId: number, unit: string, level: Level) => void;
+  setCachedReview: (cache: CachedReview | null) => void;
 };
 
 export const useAppStore = create<AppState>((set) => ({
@@ -38,6 +52,7 @@ export const useAppStore = create<AppState>((set) => ({
   levelStep: null,
   studentNames: [],
   grades: {},
+  cachedReview: null,
   setClassroom: (classroom) => set({ classroom }),
   setSemester: (semester) => set({ semester }),
   setSubject: (subject) => set({ subject }),
@@ -51,4 +66,5 @@ export const useAppStore = create<AppState>((set) => ({
         [`${studentId}-${unit}`]: level,
       },
     })),
+  setCachedReview: (cachedReview) => set({ cachedReview }),
 }));
