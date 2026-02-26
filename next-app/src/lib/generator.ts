@@ -93,16 +93,16 @@ export type GenerateCommentOptions = {
 };
 
 /**
- * 단원별로 { areaId, sentence } 배열을 반환.
- * GPT 호출 시 어느 단원의 문장인지 알 수 있어 단원별 활동 필터링이 가능.
+ * 단원별로 { areaId, level, sentence } 배열을 반환.
+ * GPT 호출 시 어느 단원/등급의 문장인지 알 수 있어 단원별 활동 필터링·예시 조회가 가능.
  */
 export function generateCommentLines(
   areaLevels: Array<{ areaId: string; level: string }>,
   templates: Template[],
   options: GenerateCommentOptions
-): Array<{ areaId: string; sentence: string }> {
+): Array<{ areaId: string; level: string; sentence: string }> {
   const { studentId, regenerateCount = 0, sentenceIndexMap } = options;
-  const result: Array<{ areaId: string; sentence: string }> = [];
+  const result: Array<{ areaId: string; level: string; sentence: string }> = [];
   for (const { areaId, level } of areaLevels) {
     const filtered = templates.filter(
       (t) => t.area_id === areaId && t.level === level
@@ -123,7 +123,7 @@ export function generateCommentLines(
         regenerateCount
       );
     }
-    if (sentence) result.push({ areaId, sentence });
+    if (sentence) result.push({ areaId, level, sentence });
   }
   return result;
 }

@@ -4,7 +4,7 @@
  * 순서:
  * 1) subject='통합'이고 semester=1인 areas 삭제 (CASCADE로 templates/ratings 함께 삭제)
  * 2) 통합-1학년1학기-areas.json INSERT, (name → id) 저장
- * 3) 통합-평어-문장.json areaName으로 area_id 매핑 후 templates INSERT
+ * 3) 통합-1학기-평어-문장.json areaName으로 area_id 매핑 후 templates INSERT
  *
  * 사용 (next-app 폴더에서):
  *   node scripts/seed-통합-평어.mjs
@@ -25,7 +25,7 @@ if (existsSync(envPath)) {
   }
 }
 
-const dataDir = join(__dirname, 'seed-data');
+const dataDir = join(__dirname, 'seed-data', '1학년-1학기');
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -42,12 +42,13 @@ function loadJson(name) {
 }
 
 async function main() {
-  // 1) 통합 1학기 areas 삭제 (DB FK on delete cascade → templates, ratings 함께 삭제)
+  // 1) 통합 1학년 1학기 areas 삭제 (DB FK on delete cascade → templates, ratings 함께 삭제)
   const { error: deleteErr } = await supabase
     .from('areas')
     .delete()
     .eq('subject', '통합')
-    .eq('semester', 1);
+    .eq('semester', 1)
+    .eq('grade', 1);
 
   if (deleteErr) {
     console.error('areas 삭제 오류:', deleteErr.message);
@@ -68,6 +69,7 @@ async function main() {
         name: row.name,
         order_index: row.order_index,
         semester: row.semester ?? 1,
+        grade: row.grade ?? 1,
       })
       .select('id')
       .single();
@@ -80,16 +82,16 @@ async function main() {
   console.log('areas: 통합', areaRows.length, '개 INSERT');
 
   // 3) 통합 평어 문장 → areaName으로 area_id 매핑 후 templates INSERT
-  const templateArr = loadJson('통합-평어-문장.json');
+  const templateArr = loadJson('통합-1학기-평어-문장.json');
   const toInsert = [];
 
   for (const t of templateArr) {
     if (!t.areaName || !['1', '2', '3', '4'].includes(t.level) || !t.sentence?.trim()) continue;
     const areaId = nameToId.get(t.areaName);
     if (!areaId) continue;
-    toInsert.push({ area_id: areaId, level: t.level, sentence: t.sentence.trim() });
+    toInsert.push({ area_id: areaId, level: t.level, sentence: t.sentence.trim(), grade: 1 });
   }
-  console.log('평어 문장: 통합-평어-문장.json', templateArr.length, '건 로드');
+  console.log('평어 문장: 통합-1학기-평어-문장.json', templateArr.length, '건 로드');
 
   if (toInsert.length === 0) {
     console.log('삽입할 templates가 없습니다. areas 이름이 일치하는지 확인하세요.');

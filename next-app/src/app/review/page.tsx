@@ -229,6 +229,8 @@ export default function ReviewPage() {
               body: JSON.stringify({
                 templateSentence: line.sentence,
                 activities: areaActivities,
+                areaId: line.areaId,
+                level: line.level,
               }),
             });
             const text = await res.text();

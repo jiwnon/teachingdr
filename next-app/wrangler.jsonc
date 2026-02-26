@@ -22,5 +22,5 @@
     "enabled": true,
     "logs": { "enabled": true, "invocation_logs": true }
   },
-  "placement": { "mode": "smart", "hostname": "api.openai.com" }
+  "placement": { "mode": "targeted", "hostname": "api.openai.com" }
 }

@@ -25,7 +25,7 @@ if (existsSync(envPath)) {
   }
 }
 
-const dataDir = join(__dirname, 'seed-data');
+const dataDir = join(__dirname, 'seed-data', '1학년-1학기');
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -66,12 +66,13 @@ async function main() {
     console.log('level 제약: 4단계 보장 완료');
   }
 
-  // 1) 국어·수학 1학기 areas 삭제 (DB FK on delete cascade → templates, ratings 함께 삭제)
+  // 1) 국어·수학 1학년 1학기 areas 삭제 (DB FK on delete cascade → templates, ratings 함께 삭제)
   const { error: deleteErr } = await supabase
     .from('areas')
     .delete()
     .in('subject', ['국어', '수학'])
-    .eq('semester', 1);
+    .eq('semester', 1)
+    .eq('grade', 1);
 
   if (deleteErr) {
     console.error('areas 삭제 오류:', deleteErr.message);
@@ -97,6 +98,7 @@ async function main() {
           name: row.name,
           order_index: row.order_index,
           semester: row.semester ?? 1,
+          grade: row.grade ?? 1,
         })
         .select('id')
         .single();
@@ -111,8 +113,8 @@ async function main() {
 
   // 3) 평어 문장 파일 2개 → areaName으로 area_id 매핑 후 templates INSERT
   const templateFiles = [
-    { file: '국어-평어-문장.json', subject: '국어' },
-    { file: '수학-평어-문장.json', subject: '수학' },
+    { file: '국어-1학기-평어-문장.json', subject: '국어' },
+    { file: '수학-1학기-평어-문장.json', subject: '수학' },
   ];
   const toInsert = [];
 
@@ -123,7 +125,7 @@ async function main() {
       if (!t.areaName || !['1', '2', '3', '4'].includes(level) || !t.sentence?.trim()) continue;
       const areaId = nameToId.get(`${subject}:${t.areaName}`);
       if (!areaId) continue;
-      toInsert.push({ area_id: areaId, level, sentence: t.sentence.trim() });
+      toInsert.push({ area_id: areaId, level, sentence: t.sentence.trim(), grade: 1 });
     }
     console.log('평어 문장:', file, arr.length, '건 로드');
   }

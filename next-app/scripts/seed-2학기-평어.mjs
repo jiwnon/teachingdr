@@ -25,7 +25,7 @@ if (existsSync(envPath)) {
   }
 }
 
-const dataDir = join(__dirname, 'seed-data');
+const dataDir = join(__dirname, 'seed-data', '1학년-2학기');
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -98,6 +98,7 @@ async function main() {
           name: row.name,
           order_index: row.order_index,
           semester: row.semester ?? 2,
+          grade: row.grade ?? 1,
         })
         .select('id')
         .single();
@@ -125,7 +126,7 @@ async function main() {
       if (!t.areaName || !['1', '2', '3', '4'].includes(level) || !t.sentence?.trim()) continue;
       const areaId = nameToId.get(`${subject}:${t.areaName}`);
       if (!areaId) continue;
-      toInsert.push({ area_id: areaId, level, sentence: t.sentence.trim() });
+      toInsert.push({ area_id: areaId, level, sentence: t.sentence.trim(), grade: 1 });
     }
     console.log('평어 문장:', file, arr.length, '건 로드');
   }

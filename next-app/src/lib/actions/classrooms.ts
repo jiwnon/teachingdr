@@ -247,7 +247,7 @@ export async function getReviewDataAction(
     supabase.from('areas').select('id, subject, name, order_index, semester').eq('subject', subject).eq('semester', semester).order('order_index'),
     supabase.from('ratings').select('student_id, area_id, level'),
     supabase.from('templates').select('id, area_id, level, sentence'),
-    supabase.from('activities').select('id, description').eq('classroom_id', classroomId).eq('semester', semester).eq('subject', subject).order('created_at', { ascending: true }),
+    supabase.from('activities').select('id, description, area_id').eq('classroom_id', classroomId).eq('semester', semester).eq('subject', subject).order('created_at', { ascending: true }),
   ]);
 
   if (studentsRes.error || areasRes.error || ratingsRes.error || templatesRes.error || activitiesRes.error) return null;

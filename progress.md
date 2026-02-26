@@ -72,7 +72,7 @@
 | 레벨 단계 | ✅ | 2/3/4단계 선택. 국어/수학은 별도 페이지, 통합은 ratings 내 인라인 선택 |
 | DB 스키마 | ✅ | classrooms, activities, areas(semester), templates, students(classroom_id), ratings. level 1~4. |
 | 등급 체계 | ✅ | **매우잘함(1) / 잘함(2) / 보통(3) / 노력요함(4)**. UI에서 2/3/4단계로 축약 표시. |
-| 템플릿 시드 | ✅ | **1학기**: 국어·수학 `seed-국어수학-평어.mjs` + JSON 4개, 통합 `seed-통합-평어.mjs` + JSON 2개. **2학기**: 국어·수학·통합 `seed-2학기-평어.mjs` + JSON 6개(areas 3 + 평어 3). |
+| 템플릿 시드 | ✅ | **1학기**: 국어·수학 `seed-국어수학-평어.mjs`, 통합 `seed-통합-평어.mjs` (데이터: `seed-data/1학년-1학기/`). **2학기**: `seed-2학기-평어.mjs` (데이터: `seed-data/1학년-2학기/`). 학년·학기별 폴더 구조, areas/templates insert 시 `grade` 포함. |
 | 평어 생성 | ✅ | 같은 (단원, 레벨)이라도 학생마다 **다른 문장 배정** (랜덤 셔플, 중복 방지, 부족 시 순환). |
 | /review | ✅ | 국어/수학: selectedAreaIds 기준. 통합: 학생별 ratings 기준 areaLevels. GPT 재작성·수정·복사. **줄바꿈 허용** 체크박스(해제 시 한 줄로 붙여서 보기·복사, 성적서 붙여넣기용). |
 | UI/디자인 | ✅ | 따뜻한 색상(살구/테라코타), 아이보리 배경, rounded corners. 모바일 반응형. PWA 아이콘. |
@@ -133,19 +133,21 @@ next-app/
 │   ├── seed-통합-평어.mjs               # 통합 1학기 areas(12개) + 평어 INSERT (subject='통합')
 │   ├── seed-2학기-평어.mjs              # 국어·수학·통합 2학기 areas + 평어 INSERT (3과목 통합 스크립트)
 │   ├── generate-placeholder-icons.js    # sharp로 PWA 아이콘 생성
-│   └── seed-data/                       # 국어/수학/통합 areas + 평어 문장 (1학기 + 2학기)
-│       ├── 국어-1학년1학기-areas.json
-│       ├── 국어-평어-문장.json
-│       ├── 수학-1학년1학기-areas.json
-│       ├── 수학-평어-문장.json
-│       ├── 통합-1학년1학기-areas.json    # 12 areas (4 테마 × 3 생활), subject='통합'
-│       ├── 통합-평어-문장.json          # level 1~4 × 12 areas 평어 문장
-│       ├── 국어-1학년2학기-areas.json    # 8 areas, semester=2
-│       ├── 국어-2학기-평어-문장.json     # 88건
-│       ├── 수학-1학년2학기-areas.json    # 6 areas, semester=2
-│       ├── 수학-2학기-평어-문장.json     # 66건
-│       ├── 통합-1학년2학기-areas.json    # 12 areas (4 테마 × 3 생활), semester=2
-│       └── 통합-2학기-평어-문장.json     # 132건
+│   └── seed-data/                       # 학년·학기별 폴더 (2~6학년 추가 시 동일 구조)
+│       ├── 1학년-1학기/
+│       │   ├── 국어-1학년1학기-areas.json
+│       │   ├── 국어-1학기-평어-문장.json
+│       │   ├── 수학-1학년1학기-areas.json
+│       │   ├── 수학-1학기-평어-문장.json
+│       │   ├── 통합-1학년1학기-areas.json   # 12 areas (4 테마 × 3 생활), subject='통합'
+│       │   └── 통합-1학기-평어-문장.json   # level 1~4 × 12 areas 평어 문장
+│       └── 1학년-2학기/
+│           ├── 국어-1학년2학기-areas.json   # 8 areas, semester=2
+│           ├── 국어-2학기-평어-문장.json
+│           ├── 수학-1학년2학기-areas.json   # 6 areas, semester=2
+│           ├── 수학-2학기-평어-문장.json
+│           ├── 통합-1학년2학기-areas.json   # 12 areas (4 테마 × 3 생활), semester=2
+│           └── 통합-2학기-평어-문장.json
 ```
 
 ---
@@ -196,7 +198,7 @@ UI 등급 표기: **1=매우잘함, 2=잘함, 3=보통, 4=노력요함.**
 - **학급 등록 연도**: 학급 등록 폼에 **연도** 선택 추가(기본 올해). DB `classrooms.school_year` 추가. 목록·상세·학생 명단·등급/단원/레벨단계 제목에서 "2025년 1학년 1반" 형태로 표시. 마이그레이션: `20240221100000_classrooms_school_year.sql`.
 - **학급 등록 UX**: 체험 시 버튼 문구 "체험 추가" → **"학생 추가"**. 등록(또는 학생 추가) 후 **학생 명단** 페이지(`/classes/[id]/students`)로 바로 이동.
 - **학생 명단**: "학급으로 돌아가기" → **"과목·단원 선택하기"**.
-- **seed-data 정리**: `국어-평어-문장-추가.json`, `수학-평어-문장-추가.json`, `통합-평어-문장-신규.json` 삭제. 내용은 각각 `국어-평어-문장.json`, `수학-평어-문장.json`, `통합-평어-문장.json`에 이미 반영됨.
+- **seed-data 정리**: `국어-평어-문장-추가.json`, `수학-평어-문장-추가.json`, `통합-평어-문장-신규.json` 삭제. 내용은 각각 `국어-1학기-평어-문장.json`, `수학-1학기-평어-문장.json`, `통합-1학기-평어-문장.json`에 이미 반영됨. 학년·학기별 폴더 구조(`1학년-1학기/`, `1학년-2학기/`) 적용.
 - **GPT 학습활동 반영**: API 프롬프트 강화(활동 구체 반영 지시). 429/API키/rate limit 한글 안내. 리뷰 페이지에서 실패 시 **실제 오류 메시지** 표시. 체험 모드에서 areas/templates 로드 완료 후에만 GPT 호출하도록 로딩 순서 수정.
 - **학습 활동 단원 연결**: 등급 페이지에서 활동 입력 시 **단원 드롭다운** 추가(선택 안 함 가능). DB `activities.area_id` 추가. 활동 목록에 `[단원명] 활동 설명` 형태로 표시. 마이그레이션: `20240222100000_activities_area_id.sql`.
 - **seed-data 국어/수학 areas**: `국어-1학년1학기-areas.json`에 **국어 종합**(order_index 8), `수학-1학년1학기-areas.json`에 **수학 종합**(order_index 5) 추가. 평어 문장 JSON에 해당 `areaName`이 없으면 해당 단원은 템플릿 0개로 시드됨(문장 추가 후 시드 재실행 시 반영).
@@ -237,9 +239,10 @@ UI 등급 표기: **1=매우잘함, 2=잘함, 3=보통, 4=노력요함.**
 ## 10. 참고
 
 - **문서**: `next-app/DEPLOY.md`(배포·로그인 점검), `next-app/ERRORS_AND_SETUP.md`(설정·에러).
+- **seed-data 구조**: 학년·학기별 폴더(`1학년-1학기/`, `1학년-2학기/`). 1학기 평어 문장 파일명은 `국어-1학기-평어-문장.json` 등. 시드 스크립트는 각각 해당 폴더를 `dataDir`로 참조. 2~6학년 추가 시 동일 규칙으로 `2학년-1학기/` 등 폴더 추가 후, 스크립트에서 학년 인자 또는 별도 스크립트로 해당 폴더 참조·`grade` 값 지정하면 됨.
 - **시드 재실행**:
-  - 1학기 국어·수학: `node scripts/seed-국어수학-평어.mjs` (next-app 폴더에서)
-  - 1학기 통합: `node scripts/seed-통합-평어.mjs` (next-app 폴더에서)
-  - 2학기 국어·수학·통합: `node scripts/seed-2학기-평어.mjs` (next-app 폴더에서)
+  - 1학기 국어·수학: `node scripts/seed-국어수학-평어.mjs` (next-app 폴더에서, `seed-data/1학년-1학기/` 사용)
+  - 1학기 통합: `node scripts/seed-통합-평어.mjs` (next-app 폴더에서, `seed-data/1학년-1학기/` 사용)
+  - 2학기 국어·수학·통합: `node scripts/seed-2학기-평어.mjs` (next-app 폴더에서, `seed-data/1학년-2학기/` 사용)
   - `.env.local`에 Supabase URL/Anon Key 필요
 - **DB 정리 SQL**: orphan 학생 삭제 → `DELETE FROM ratings WHERE student_id IN (SELECT id FROM students WHERE classroom_id IS NULL); DELETE FROM students WHERE classroom_id IS NULL;`
